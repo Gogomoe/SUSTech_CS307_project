@@ -29,6 +29,8 @@ dependencies {
     implementation 'io.vertx:vertx-jdbc-client:4.0.0-milestone4'
     implementation 'io.vertx:vertx-auth-jdbc:4.0.0-milestone4'
 
+    implementation 'org.postgresql:postgresql:42.2.12'
+
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
