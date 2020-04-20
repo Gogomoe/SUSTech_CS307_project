@@ -100,20 +100,20 @@ CREATE TABLE IF NOT EXISTS train_seat
 
 CREATE TABLE IF NOT EXISTS train_station
 (
-    train_id    INT       NOT NULL REFERENCES train_static (train_static_id),
-    station_id  INT       NOT NULL REFERENCES station (station_id),
-    arrive_time TIMESTAMP NOT NULL,
-    depart_time TIMESTAMP NOT NULL,
-    PRIMARY KEY (train_id, station_id)
+    train_static_id INT       NOT NULL REFERENCES train_static (train_static_id),
+    station_id      INT       NOT NULL REFERENCES station (station_id),
+    arrive_time     TIMESTAMP NOT NULL,
+    depart_time     TIMESTAMP NOT NULL,
+    PRIMARY KEY (train_static_id, station_id)
 );
 
 CREATE TABLE IF NOT EXISTS train_station_price
 (
-    train_id     INT NOT NULL REFERENCES train_static (train_static_id),
-    station_id   INT NOT NULL REFERENCES station (station_id),
-    seat_id      INT NOT NULL REFERENCES seat (seat_id),
-    remain_price INT NOT NULL,
-    PRIMARY KEY (train_id, station_id, seat_id)
+    train_static_id INT NOT NULL REFERENCES train_static (train_static_id),
+    station_id      INT NOT NULL REFERENCES station (station_id),
+    seat_id         INT NOT NULL REFERENCES seat (seat_id),
+    remain_price    INT NOT NULL,
+    PRIMARY KEY (train_static_id, station_id, seat_id)
 );
 
 CREATE TABLE IF NOT EXISTS train_history
