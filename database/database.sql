@@ -1,4 +1,10 @@
-DROP TABLE IF EXISTS "user",user_roles,roles_perms,user_info;
+DROP TABLE IF EXISTS
+    "user",user_roles,roles_perms,user_info,
+    station, train_static,
+    seat, train_seat, train_station, train_station_price,
+    train_history, train_active,
+    passenger, ticket_history, ticket_active,
+    order_history, order_active;
 
 CREATE TABLE IF NOT EXISTS "user"
 (
@@ -58,3 +64,120 @@ VALUES ('user',
 
 INSERT INTO user_info
 VALUES ('user', null);
+
+CREATE TABLE IF NOT EXISTS station
+(
+    station_id SERIAL      NOT NULL PRIMARY KEY,
+    name       VARCHAR(20) NOT NULL UNIQUE,
+    city       VARCHAR(20) NOT NULL UNIQUE,
+    code       VARCHAR(5)  NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS train_static
+(
+    train_static_id SERIAL      NOT NULL PRIMARY KEY,
+    code            VARCHAR(10) NOT NULL UNIQUE,
+    type            VARCHAR(20) NOT NULL,
+    depart_station  INT         NOT NULL REFERENCES station (station_id),
+    arrive_station  INT         NOT NULL REFERENCES station (station_id),
+    depart_time     TIMESTAMP   NOT NULL,
+    arrive_time     TIMESTAMP   NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS seat
+(
+    seat_id SERIAL      NOT NULL PRIMARY KEY,
+    name    VARCHAR(20) NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS train_seat
+(
+    train_static_id INT NOT NULL REFERENCES train_static (train_static_id),
+    seat_id         INT NOT NULL REFERENCES seat (seat_id),
+    count           INT NOT NULL,
+    PRIMARY KEY (train_static_id, seat_id)
+);
+
+CREATE TABLE IF NOT EXISTS train_station
+(
+    train_id    INT       NOT NULL REFERENCES train_static (train_static_id),
+    station_id  INT       NOT NULL REFERENCES station (station_id),
+    arrive_time TIMESTAMP NOT NULL,
+    depart_time TIMESTAMP NOT NULL,
+    PRIMARY KEY (train_id, station_id)
+);
+
+CREATE TABLE IF NOT EXISTS train_station_price
+(
+    train_id     INT NOT NULL REFERENCES train_static (train_static_id),
+    station_id   INT NOT NULL REFERENCES station (station_id),
+    seat_id      INT NOT NULL REFERENCES seat (seat_id),
+    remain_price INT NOT NULL,
+    PRIMARY KEY (train_id, station_id, seat_id)
+);
+
+CREATE TABLE IF NOT EXISTS train_history
+(
+    train_id     INT  NOT NULL PRIMARY KEY,
+    train_static INT  NOT NULL REFERENCES train_static (train_static_id),
+    depart_date  DATE NOT NULL,
+    UNIQUE (train_static, depart_date)
+);
+CREATE TABLE IF NOT EXISTS train_active
+(
+    train_id     INT  NOT NULL PRIMARY KEY,
+    train_static INT  NOT NULL REFERENCES train_static (train_static_id),
+    depart_date  DATE NOT NULL,
+    UNIQUE (train_static, depart_date)
+);
+
+CREATE TABLE IF NOT EXISTS passenger
+(
+    passenger_id SERIAL       NOT NULL PRIMARY KEY,
+    name         VARCHAR(100) NOT NULL,
+    people_id    CHAR(18)     NOT NULL UNIQUE,
+    phone        VARCHAR(20)  NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ticket_history
+(
+    ticket_id      INT NOT NULL PRIMARY KEY,
+    train_id       INT NOT NULL,
+    depart_station INT NOT NULL REFERENCES station (station_id),
+    arrive_station INT NOT NULL REFERENCES station (station_id),
+    seat_id        INT NOT NULL REFERENCES seat (seat_id),
+    seat_num       INT,
+    order_id       INT NOT NULL,
+    passenger_id   INT NOT NULL REFERENCES passenger (passenger_id)
+);
+
+CREATE TABLE IF NOT EXISTS ticket_active
+(
+    ticket_id      INT NOT NULL PRIMARY KEY,
+    train_id       INT NOT NULL,
+    depart_station INT NOT NULL REFERENCES station (station_id),
+    arrive_station INT NOT NULL REFERENCES station (station_id),
+    seat_id        INT NOT NULL REFERENCES seat (seat_id),
+    seat_num       INT,
+    order_id       INT NOT NULL,
+    passenger_id   INT NOT NULL REFERENCES passenger (passenger_id)
+);
+
+
+CREATE TABLE IF NOT EXISTS order_history
+(
+    order_id    INT          NOT NULL PRIMARY KEY,
+    valid       BOOLEAN      NOT NULL DEFAULT TRUE,
+    username    VARCHAR(255) NOT NULL REFERENCES "user" (username),
+    create_time TIMESTAMP    NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS order_active
+(
+    order_id    INT          NOT NULL PRIMARY KEY,
+    valid       BOOLEAN      NOT NULL DEFAULT TRUE,
+    username    VARCHAR(255) NOT NULL REFERENCES "user" (username),
+    create_time TIMESTAMP    NOT NULL DEFAULT NOW(),
+    update_time TIMESTAMP    NOT NULL DEFAULT NOW()
+);
