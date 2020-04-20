@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS station
 (
     station_id SERIAL      NOT NULL PRIMARY KEY,
     name       VARCHAR(20) NOT NULL UNIQUE,
-    city       VARCHAR(20) NOT NULL UNIQUE,
+    city       VARCHAR(20) NOT NULL,
     code       VARCHAR(5)  NOT NULL UNIQUE
 );
 
