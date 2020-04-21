@@ -42,7 +42,7 @@ public class Main {
             t.arriveTime += 8640_0000;
         }
         t.departTime = t.arriveTime - t.stations.get(0).runTime;
-        t.arriveTime /= 1000;
+        t.arriveTime /= 1000;//转换为秒
         t.departTime /= 1000;
         t.stations.forEach(s -> {
             if (s.runTime == 0) {
@@ -51,23 +51,28 @@ public class Main {
                 return;
             }
             s.leaveTime = t.arriveTime - s.runTime / 1000;
-            s.arriveTime = s.leaveTime - 180;
+            s.arriveTime = s.leaveTime - 180;//停车3分钟
         });
     }
 
     static void writeTrains() {
         var i_train_static = """
                 insert into train_static (train_static_id, code, type, depart_station, arrive_station, depart_time, arrive_time) 
-                values (A0, 'A1', 'A2', A3, A4, to_timestamp(A5), to_timestamp(A6));
+                values (A0, 'A1', 'A2', A3, A4, interval 'A5'), interval 'A6');
                 """;
         var i_train_station = """
                 insert into train_station (train_static_id, station_id, arrive_time, depart_time) values 
-                (A0, A1, to_timestamp(A2), to_timestamp(A3));
+                (A0, A1, interval 'A2', interval 'A3');
                 """;
         var i_train_station_price = """
                 insert into train_station_price (train_static_id, station_id, seat_id, remain_price) values 
                 (A0, A1, A2, A3);
                 """;
+        var i_train_seat = """
+                insert into train_seat (train_static_id, seat_id, count) values (A1, A2, A3);
+                """;
+        var common_seat_nums = new String[]{"","1536", "80", "264", "44"};
+        var high_seat_nums = new String[]{"","1020", "240", "648", "144"};
         trains.values().forEach(t -> {
             var state = i_train_static.replace("A0", "" + t.ID);
             state = state.replace("A1", t.mark);
@@ -77,6 +82,19 @@ public class Main {
             state = state.replace("A5", "" + t.departTime);
             state = state.replace("A6", "" + t.arriveTime);
             pw.println(state);
+            for(int i=1;i<5;i++){
+                if(t.stations.get(0).prices[i]==-1) continue;
+                state = i_train_seat.replace("A0",""+t.ID);
+                state = state.replace("A1",""+i);
+                if(t.mark.matches("D.+|G.+")&&i>2){
+                    System.out.println(t.departStation);
+                    System.out.println(t.arriveStation);
+                    System.out.println(t.mark);
+                    System.out.println(Arrays.toString(t.stations.get(0).prices));
+                }
+                state = state.replace("A2",t.mark.matches("D.+|G.+")?high_seat_nums[i]:common_seat_nums[i]);
+                pw.println(state);
+            }
 
             t.stations.forEach(s -> {
                 var $state = i_train_station.replace("A0", "" + t.ID);
@@ -123,7 +141,7 @@ public class Main {
         for (File csv : Objects.requireNonNull(root.listFiles(f -> f.getName().contains("csv") && !f.getName().contains("station")))) {
             Files.readAllLines(csv.toPath()).stream().skip(13).map(l -> l.split(","))
                     .forEach(l -> {
-                        var mark = l[0].replaceAll(" .+", "");
+                        var mark = l[0].replaceAll(" .+", "");//干掉 *, -, +等东西
                         var train = trains.get(mark);
                         if (train == null) {
                             var type = l[2];
@@ -169,6 +187,7 @@ public class Main {
                                 }
                             }
                         }
+
                         if (!train.stations.contains(trainStation)) {
                             train.stations.add(trainStation);
                         }
