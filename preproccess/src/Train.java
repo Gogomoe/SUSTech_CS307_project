@@ -7,7 +7,7 @@ public class Train{
     String mark;
     String type;
     int departStation, arriveStation;
-    long deaprtTime, arriveTime;
+    long departTime, arriveTime;
     List<Train_Station> stations;
 
     public Train(String mark, String type, int departStation, int arriveStation, long arriveTime) {

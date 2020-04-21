@@ -38,11 +38,21 @@ public class Main {
     private static void calculateTimes(Train t) {
         t.stations.sort(Comparator.comparingLong(i -> ((Train_Station) i).runTime).reversed());
         t.departStation = t.stations.get(0).stationID;
-        while (t.arriveTime - t.stations.get(0).runTime < -2880_0000) {
+        while (t.arriveTime - t.stations.get(0).runTime < 0) {
             t.arriveTime += 8640_0000;
         }
-        t.deaprtTime = t.arriveTime - t.stations.get(0).runTime;
-        t.stations.forEach(s -> s.leaveTime = t.arriveTime - s.runTime);
+        t.departTime = t.arriveTime - t.stations.get(0).runTime;
+        t.arriveTime /= 1000;
+        t.departTime /= 1000;
+        t.stations.forEach(s -> {
+            if (s.runTime == 0) {
+                s.arriveTime = t.arriveTime;
+                s.leaveTime = s.arriveTime+180;
+                return;
+            }
+            s.leaveTime = t.arriveTime - s.runTime / 1000;
+            s.arriveTime = s.leaveTime - 180;
+        });
     }
 
     static void writeTrains() {
@@ -64,7 +74,7 @@ public class Main {
             state = state.replace("A2", t.type);
             state = state.replace("A3", "" + t.departStation);
             state = state.replace("A4", "" + t.arriveStation);
-            state = state.replace("A5", "" + t.deaprtTime);
+            state = state.replace("A5", "" + t.departTime);
             state = state.replace("A6", "" + t.arriveTime);
             pw.println(state);
 
@@ -113,29 +123,27 @@ public class Main {
         for (File csv : Objects.requireNonNull(root.listFiles(f -> f.getName().contains("csv") && !f.getName().contains("station")))) {
             Files.readAllLines(csv.toPath()).stream().skip(13).map(l -> l.split(","))
                     .forEach(l -> {
-                        var mark = l[0].replaceAll(" \\*", "");
+                        var mark = l[0].replaceAll(" .+", "");
                         var train = trains.get(mark);
                         if (train == null) {
                             var type = l[2];
                             var d_a = l[1].split("-");
-//                            if(stations.get(d_a[0])==null){
-//                                stations.put(d_a[0],new Station("NUL",d_a[0],"NUL"));
-//                                System.out.println(d_a[0]);
-//                            }
                             var departStation = stations.get(d_a[0]).ID;
-//                            if(stations.get(d_a[1])==null){
-//                                stations.put(d_a[1],new Station("NUL",d_a[1],"NUL"));
-//                                System.out.println(d_a[1]);
-//                            }
                             var arriveStation = stations.get(d_a[1]).ID;
                             var arriveTime = getStaticTimeStamp(l[6]);
                             train = new Train(mark, type, departStation, arriveStation, arriveTime);
+                            //特殊处置终到站
+                            var arriveTrainStation = new Train_Station(arriveStation, 0);
+                            for (int i = 1; i <= 4; i++) {
+                                if (l[i + 8].contains("-"))
+                                    continue;
+                                arriveTrainStation.prices[i] = 0;//终到站，票价为0
+                            }
+                            train.stations.add(arriveTrainStation);
+
                             trains.put(mark, train);
                         }
-//                        if(stations.get(l[3])==null){
-//                            stations.put(l[3],new Station("NUL",l[3],"NUL"));
-//                            System.out.println(l[3]);
-//                        }
+
                         var currStation = stations.get(l[3]).ID;
                         var runTime = getRunTime(l[8]);
                         var trainStation = new Train_Station(currStation, runTime);
@@ -153,31 +161,27 @@ public class Main {
                                 for (String s : prices) price += Double.parseDouble(s);
                                 price /= prices.length;
                                 trainStation.prices[i] = (int) price;
-                            }else{
-                                try{
-                                    var price = Double.parseDouble(l[i+8]);
-                                    trainStation.prices[i] = (int)price;
-                                }catch (Exception ignored){}
+                            } else {
+                                try {
+                                    var price = Double.parseDouble(l[i + 8]);
+                                    trainStation.prices[i] = (int) price;
+                                } catch (Exception ignored) {
+                                }
                             }
                         }
-                        if(!train.stations.contains(trainStation)){
+                        if (!train.stations.contains(trainStation)) {
                             train.stations.add(trainStation);
-                        }else{
-                            var i = train.stations.get(train.stations.indexOf(trainStation));
-                            if(i.runTime!=trainStation.runTime){
-                                System.out.println(l[3]);
-                            }
                         }
                     });
         }
     }
 
     static long getStaticTimeStamp(String t) {
-        return LocalDateTime.parse("1970-1-1 " + t, timeFormatter).toInstant(ZoneOffset.of("+8")).toEpochMilli();
+        return LocalDateTime.parse("1970-1-1 " + t, timeFormatter).toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 
     static long getRunTime(String t) {
         var h_m = t.split(":");
-        return (Integer.parseInt(h_m[0])*60+Integer.parseInt(h_m[1]))*60*1000;
+        return (Integer.parseInt(h_m[0]) * 60 + Integer.parseInt(h_m[1])) * 60 * 1000;
     }
 }
