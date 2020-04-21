@@ -58,7 +58,7 @@ public class Main {
     static void writeTrains() {
         var i_train_static = """
                 insert into train_static (train_static_id, code, type, depart_station, arrive_station, depart_time, arrive_time) 
-                values (A0, 'A1', 'A2', A3, A4, interval 'A5'), interval 'A6');
+                values (A0, 'A1', 'A2', A3, A4, interval 'A5', interval 'A6');
                 """;
         var i_train_station = """
                 insert into train_station (train_static_id, station_id, arrive_time, depart_time) values 
@@ -69,10 +69,12 @@ public class Main {
                 (A0, A1, A2, A3);
                 """;
         var i_train_seat = """
-                insert into train_seat (train_static_id, seat_id, count) values (A1, A2, A3);
+                insert into train_seat (train_static_id, seat_id, count) values (A0, A1, A2);
                 """;
-        var common_seat_nums = new String[]{"","1536", "80", "264", "44"};
-        var high_seat_nums = new String[]{"","1020", "240", "648", "144"};
+        var commonSeatNums = new String[]{"","1656", "80", "264", "44"};
+        // 无 K T Z
+        var highSeatNums = new String[]{"","1140", "240", "648", "144"};
+        // C D G
         trains.values().forEach(t -> {
             var state = i_train_static.replace("A0", "" + t.ID);
             state = state.replace("A1", t.mark);
@@ -82,17 +84,13 @@ public class Main {
             state = state.replace("A5", "" + t.departTime);
             state = state.replace("A6", "" + t.arriveTime);
             pw.println(state);
+
+            //座位数
             for(int i=1;i<5;i++){
                 if(t.stations.get(0).prices[i]==-1) continue;
                 state = i_train_seat.replace("A0",""+t.ID);
                 state = state.replace("A1",""+i);
-                if(t.mark.matches("D.+|G.+")&&i>2){
-                    System.out.println(t.departStation);
-                    System.out.println(t.arriveStation);
-                    System.out.println(t.mark);
-                    System.out.println(Arrays.toString(t.stations.get(0).prices));
-                }
-                state = state.replace("A2",t.mark.matches("D.+|G.+")?high_seat_nums[i]:common_seat_nums[i]);
+                state = state.replace("A2",t.mark.matches("D.+|G.+|C.+")?highSeatNums[i]:commonSeatNums[i]);
                 pw.println(state);
             }
 
