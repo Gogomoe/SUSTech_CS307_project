@@ -3,8 +3,12 @@ DROP TABLE IF EXISTS
     station, train_static,
     seat, train_seat, train_station, train_station_price,
     train_history, train_active,
-    passenger, ticket_history, ticket_active,
-    order_history, order_active;
+    passenger, ticket_history, ticket_active;
+
+DROP SEQUENCE IF EXISTS train_sequence, ticket_sequence;
+
+CREATE SEQUENCE IF NOT EXISTS train_sequence;
+CREATE SEQUENCE IF NOT EXISTS ticket_sequence;
 
 CREATE TABLE IF NOT EXISTS "user"
 (
@@ -80,8 +84,8 @@ CREATE TABLE IF NOT EXISTS train_static
     type            VARCHAR(20) NOT NULL,
     depart_station  INT         NOT NULL REFERENCES station (station_id),
     arrive_station  INT         NOT NULL REFERENCES station (station_id),
-    depart_time     TIMESTAMP   NOT NULL,
-    arrive_time     TIMESTAMP   NOT NULL
+    depart_time     INTERVAL(0) NOT NULL,
+    arrive_time     INTERVAL(0) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS seat
@@ -100,10 +104,10 @@ CREATE TABLE IF NOT EXISTS train_seat
 
 CREATE TABLE IF NOT EXISTS train_station
 (
-    train_static_id INT       NOT NULL REFERENCES train_static (train_static_id),
-    station_id      INT       NOT NULL REFERENCES station (station_id),
-    arrive_time     TIMESTAMP NOT NULL,
-    depart_time     TIMESTAMP NOT NULL,
+    train_static_id INT         NOT NULL REFERENCES train_static (train_static_id),
+    station_id      INT         NOT NULL REFERENCES station (station_id),
+    arrive_time     INTERVAL(0) NOT NULL,
+    depart_time     INTERVAL(0) NOT NULL,
     PRIMARY KEY (train_static_id, station_id)
 );
 
@@ -141,43 +145,30 @@ CREATE TABLE IF NOT EXISTS passenger
 
 CREATE TABLE IF NOT EXISTS ticket_history
 (
-    ticket_id      INT NOT NULL PRIMARY KEY,
-    train_id       INT NOT NULL,
-    depart_station INT NOT NULL REFERENCES station (station_id),
-    arrive_station INT NOT NULL REFERENCES station (station_id),
-    seat_id        INT NOT NULL REFERENCES seat (seat_id),
+    ticket_id      INT          NOT NULL PRIMARY KEY,
+    train_id       INT          NOT NULL,
+    depart_station INT          NOT NULL REFERENCES station (station_id),
+    arrive_station INT          NOT NULL REFERENCES station (station_id),
+    seat_id        INT          NOT NULL REFERENCES seat (seat_id),
     seat_num       INT,
-    order_id       INT NOT NULL,
-    passenger_id   INT NOT NULL REFERENCES passenger (passenger_id)
+    passenger_id   INT          NOT NULL REFERENCES passenger (passenger_id),
+    username       VARCHAR(255) NOT NULL REFERENCES "user" (username),
+    valid          BOOLEAN      NOT NULL DEFAULT TRUE,
+    create_time    TIMESTAMP    NOT NULL DEFAULT NOW(),
+    update_time    TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS ticket_active
 (
-    ticket_id      INT NOT NULL PRIMARY KEY,
-    train_id       INT NOT NULL,
-    depart_station INT NOT NULL REFERENCES station (station_id),
-    arrive_station INT NOT NULL REFERENCES station (station_id),
-    seat_id        INT NOT NULL REFERENCES seat (seat_id),
+    ticket_id      INT          NOT NULL PRIMARY KEY,
+    train_id       INT          NOT NULL,
+    depart_station INT          NOT NULL REFERENCES station (station_id),
+    arrive_station INT          NOT NULL REFERENCES station (station_id),
+    seat_id        INT          NOT NULL REFERENCES seat (seat_id),
     seat_num       INT,
-    order_id       INT NOT NULL,
-    passenger_id   INT NOT NULL REFERENCES passenger (passenger_id)
-);
-
-
-CREATE TABLE IF NOT EXISTS order_history
-(
-    order_id    INT          NOT NULL PRIMARY KEY,
-    valid       BOOLEAN      NOT NULL DEFAULT TRUE,
-    username    VARCHAR(255) NOT NULL REFERENCES "user" (username),
-    create_time TIMESTAMP    NOT NULL DEFAULT NOW(),
-    update_time TIMESTAMP    NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS order_active
-(
-    order_id    INT          NOT NULL PRIMARY KEY,
-    valid       BOOLEAN      NOT NULL DEFAULT TRUE,
-    username    VARCHAR(255) NOT NULL REFERENCES "user" (username),
-    create_time TIMESTAMP    NOT NULL DEFAULT NOW(),
-    update_time TIMESTAMP    NOT NULL DEFAULT NOW()
+    passenger_id   INT          NOT NULL REFERENCES passenger (passenger_id),
+    username       VARCHAR(255) NOT NULL REFERENCES "user" (username),
+    valid          BOOLEAN      NOT NULL DEFAULT TRUE,
+    create_time    TIMESTAMP    NOT NULL DEFAULT NOW(),
+    update_time    TIMESTAMP    NOT NULL DEFAULT NOW()
 );
