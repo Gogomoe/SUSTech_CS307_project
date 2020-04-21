@@ -90,7 +90,7 @@ public class Main {
                 if(t.stations.get(0).prices[i]==-1) continue;
                 state = i_train_seat.replace("A0",""+t.ID);
                 state = state.replace("A1",""+i);
-                state = state.replace("A2",t.mark.matches("D.+|G.+|C.+")?highSeatNums[i]:commonSeatNums[i]);
+                state = state.replace("A2",t.mark.matches("[DGC].+")?highSeatNums[i]:commonSeatNums[i]);
                 pw.println(state);
             }
 
