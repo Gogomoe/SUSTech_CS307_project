@@ -12,7 +12,6 @@ public class Main {
     static HashMap<String, Station> stations;
     static HashMap<String, Train> trains;
     static DateTimeFormatter timeFormatter;
-
     public static void main(String[] args) throws Exception {
         pw = new PrintWriter("../database/data.sql");
         stations = new HashMap<>(3000);
@@ -29,17 +28,18 @@ public class Main {
         readStationCSV();
         writeStations();
         readEachStation();
-        trains.values().parallelStream().forEach(Main::calculateTimes);
+        trains.values().forEach(Main::calculateTimes);
         writeTrains();
         pw.println("commit;");
         pw.close();
     }
 
     private static void calculateTimes(Train t) {
+        //剩余运行时间降序，即按照车的运行顺序
         t.stations.sort(Comparator.comparingLong(i -> ((Train_Station) i).runTime).reversed());
-        t.departStation = t.stations.get(0).stationID;
+
         while (t.arriveTime - t.stations.get(0).runTime < 0) {
-            t.arriveTime += 8640_0000;
+            t.arriveTime += 8640_0000;//一天的毫秒数
         }
         t.departTime = t.arriveTime - t.stations.get(0).runTime;
         t.arriveTime /= 1000;//转换为秒
@@ -47,7 +47,7 @@ public class Main {
         t.stations.forEach(s -> {
             if (s.runTime == 0) {
                 s.arriveTime = t.arriveTime;
-                s.leaveTime = s.arriveTime+180;
+                s.leaveTime = s.arriveTime+180;//停车3分钟
                 return;
             }
             s.leaveTime = t.arriveTime - s.runTime / 1000;
@@ -58,11 +58,11 @@ public class Main {
     static void writeTrains() {
         var i_train_static = """
                 insert into train_static (train_static_id, code, type, depart_station, arrive_station, depart_time, arrive_time) 
-                values (A0, 'A1', 'A2', A3, A4, interval 'A5', interval 'A6');
+                values (A0, 'A1', 'A2', A3, A4, justify_interval(interval 'A5'), justify_interval(interval 'A6'));
                 """;
         var i_train_station = """
                 insert into train_station (train_static_id, station_id, arrive_time, depart_time) values 
-                (A0, A1, interval 'A2', interval 'A3');
+                (A0, A1, justify_interval(interval 'A2'), justify_interval(interval 'A3'));
                 """;
         var i_train_station_price = """
                 insert into train_station_price (train_static_id, station_id, seat_id, remain_price) values 
@@ -72,10 +72,24 @@ public class Main {
                 insert into train_seat (train_static_id, seat_id, count) values (A0, A1, A2);
                 """;
         var commonSeatNums = new String[]{"","1656", "80", "264", "44"};
-        // 无 K T Z
+        // 无 K T Z S Y P
         var highSeatNums = new String[]{"","1140", "240", "648", "144"};
         // C D G
         trains.values().forEach(t -> {
+            if(t.departStation==t.arriveStation)
+                return;
+            //抛弃环线
+
+            for (int i=1;i<=4;i++){
+                if(t.stations.get(0).prices[i]==-1) continue;
+                for(int j=1;j<t.stations.size();j++){
+                    if(t.stations.get(j).prices[i]>t.stations.get(j-1).prices[i]){
+                        return;
+                    }
+                }
+            }
+            //价格<0就不写入
+
             var state = i_train_static.replace("A0", "" + t.ID);
             state = state.replace("A1", t.mark);
             state = state.replace("A2", t.type);
@@ -164,12 +178,14 @@ public class Main {
                         var runTime = getRunTime(l[8]);
                         var trainStation = new Train_Station(currStation, runTime);
                         //leave time will be set by calculating later.
+
                         for (int i = 1; i <= 2; i++) {
                             if (l[i + 8].contains("-"))
                                 continue;
                             var price = (int) Double.parseDouble(l[i + 8]);
                             trainStation.prices[i] = price;
                         }
+
                         for (int i = 3; i <= 4; i++) {
                             if (l[i + 8].contains("/")) {
                                 var prices = l[i + 8].split("/");
