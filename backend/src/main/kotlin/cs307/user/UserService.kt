@@ -3,16 +3,25 @@ package cs307.user
 import cs307.Service
 import cs307.ServiceRegistry
 import cs307.database.DatabaseService
+import io.vertx.core.Vertx
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.auth.AuthProvider
 import io.vertx.ext.auth.jdbc.JDBCAuthentication
 import io.vertx.ext.auth.jdbc.JDBCAuthenticationOptions
 import io.vertx.ext.auth.jdbc.JDBCHashStrategy
 import io.vertx.ext.jdbc.JDBCClient
+import io.vertx.kotlin.core.executeBlockingAwait
 import io.vertx.kotlin.core.json.jsonArrayOf
 import io.vertx.kotlin.ext.auth.authentication.authenticateAwait
 import io.vertx.kotlin.ext.sql.querySingleWithParamsAwait
 import io.vertx.kotlin.ext.sql.queryWithParamsAwait
+import me.liuwj.ktorm.database.Database
+import me.liuwj.ktorm.dsl.eq
+import me.liuwj.ktorm.dsl.from
+import me.liuwj.ktorm.dsl.select
+import me.liuwj.ktorm.dsl.where
+import me.liuwj.ktorm.schema.Table
+import me.liuwj.ktorm.schema.varchar
 import moe.gogo.ServiceException
 
 
@@ -21,6 +30,9 @@ class UserService : Service {
     private lateinit var database: JDBCClient
     private lateinit var auth: JDBCAuthentication
     private lateinit var hashStrategy: JDBCHashStrategy
+
+    private lateinit var orm: Database
+    private lateinit var vertx: Vertx
 
     override suspend fun start(registry: ServiceRegistry) {
         database = registry[DatabaseService::class.java].client()
@@ -31,6 +43,16 @@ class UserService : Service {
                 """.trimIndent())
         hashStrategy = JDBCHashStrategy.createSHA512(registry.vertx())
         auth = JDBCAuthentication.create(database, hashStrategy, options)
+
+        orm = with(registry[DatabaseService::class.java].config()) {
+            Database.Companion.connect(
+                    getString("url"),
+                    getString("driver_class"),
+                    getString("user"),
+                    getString("password")
+            )
+        }
+        vertx = registry.vertx()
     }
 
     fun auth(): AuthProvider = auth
@@ -68,6 +90,23 @@ class UserService : Service {
                 jsonArrayOf(username)
         ) ?: throw ServiceException("User does not exist")
         return User(username, userInfo.getString(1))
+    }
+
+    object UserInfoMapping : Table<Nothing>("user_info".trim()) {
+        val username by varchar("username")
+        val avatar by varchar("avatar")
+    }
+
+    private suspend fun getUserByORM(username: String): User {
+        return vertx.executeBlockingAwait { promise ->
+            val result = orm.from(UserInfoMapping)
+                    .select(UserInfoMapping.columns)
+                    .where { (UserInfoMapping.username eq username) }
+                    .map {
+                        User(it[UserInfoMapping.username]!!, it[UserInfoMapping.avatar])
+                    }
+            promise.complete(result.firstOrNull())
+        } ?: throw ServiceException("User does not exist")
     }
 
 }
