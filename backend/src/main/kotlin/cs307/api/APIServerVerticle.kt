@@ -6,6 +6,8 @@ import cs307.ServiceRegistry
 import cs307.api.handler.ServiceRegistryHandler
 import cs307.api.handler.UserHandler
 import cs307.database.DatabaseService
+import cs307.train.TrainController
+import cs307.train.TrainService
 import cs307.user.UserController
 import cs307.user.UserService
 import io.vertx.ext.web.Router
@@ -29,7 +31,8 @@ class APIServerVerticle : CoroutineVerticle() {
 
         services = listOf(
                 DatabaseService::class.java to DatabaseService(),
-                UserService::class.java to UserService()
+                UserService::class.java to UserService(),
+                TrainService::class.java to TrainService()
         )
 
         services.forEach { (clazz, service) ->
@@ -55,7 +58,8 @@ class APIServerVerticle : CoroutineVerticle() {
         }
 
         val controllers: List<Controller> = listOf(
-                UserController(registry)
+                UserController(registry),
+                TrainController(registry)
         )
 
         controllers.forEach {
