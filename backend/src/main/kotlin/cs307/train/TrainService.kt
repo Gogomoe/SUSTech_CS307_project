@@ -4,6 +4,7 @@ import cs307.Service
 import cs307.ServiceRegistry
 import cs307.database.DatabaseService
 import cs307.format.format
+import cs307.ticket.TicketService
 import cs307.user.UserService
 import io.vertx.ext.auth.AuthProvider
 import io.vertx.ext.jdbc.JDBCClient
@@ -17,10 +18,12 @@ class TrainService : Service {
 
     private lateinit var database: JDBCClient
     private lateinit var auth: AuthProvider
+    private lateinit var tickets: TicketService
 
     override suspend fun start(registry: ServiceRegistry) {
         database = registry[DatabaseService::class.java].client()
         auth = registry[UserService::class.java].auth()
+        tickets = registry[TicketService::class.java]
     }
 
     suspend fun searchActiveTrainBetween(from: String, to: String, date: LocalDate): List<TrainBetween> {
@@ -74,6 +77,10 @@ class TrainService : Service {
 
         return result.rows.map {
             it.toTrainBetween()
+        }.onEach {
+            val trainTicketResult = tickets.getTrainTicketResult(it.train.id)
+            val ticketInfo = trainTicketResult.ticketInfo(it.departStation.id, it.arriveStation.id)
+            it.seat.putAll(ticketInfo)
         }
     }
 

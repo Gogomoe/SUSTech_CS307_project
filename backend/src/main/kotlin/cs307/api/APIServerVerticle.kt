@@ -6,6 +6,8 @@ import cs307.ServiceRegistry
 import cs307.api.handler.ServiceRegistryHandler
 import cs307.api.handler.UserHandler
 import cs307.database.DatabaseService
+import cs307.memory.MemoryService
+import cs307.ticket.TicketService
 import cs307.train.TrainController
 import cs307.train.TrainService
 import cs307.user.UserController
@@ -31,7 +33,9 @@ class APIServerVerticle : CoroutineVerticle() {
 
         services = listOf(
                 DatabaseService::class.java to DatabaseService(),
+                MemoryService::class.java to MemoryService(),
                 UserService::class.java to UserService(),
+                TicketService::class.java to TicketService(),
                 TrainService::class.java to TrainService()
         )
 

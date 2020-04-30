@@ -1,8 +1,8 @@
 package cs307.train
 
+import cs307.format.format
 import cs307.format.getLocalDate
 import cs307.format.getLocalDateTime
-import cs307.format.format
 import io.vertx.core.json.JsonObject
 import io.vertx.kotlin.core.json.jsonObjectOf
 import java.time.LocalDate
@@ -20,8 +20,8 @@ data class TrainBetween(
         val departStation: Station,
         val departTime: LocalDateTime,
         val arriveStation: Station,
-        val arriveTime: LocalDateTime
-
+        val arriveTime: LocalDateTime,
+        val seat: MutableMap<Int, SeatPriceCount> = mutableMapOf()
 )
 
 fun JsonObject.toTrain(prefix: String = ""): Train {
@@ -58,7 +58,8 @@ fun TrainBetween.toJson(): JsonObject {
             "depart_station" to departStation.toJson(),
             "depart_time" to departTime.format(),
             "arrive_station" to arriveStation.toJson(),
-            "arrive_time" to arriveTime.format()
+            "arrive_time" to arriveTime.format(),
+            "seats" to JsonObject(seat.map { it.key.toString() to it.value.toJson() }.toMap())
     )
 }
 
