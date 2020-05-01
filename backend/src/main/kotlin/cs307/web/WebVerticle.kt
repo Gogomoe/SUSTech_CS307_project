@@ -22,7 +22,12 @@ class WebServerVerticle : CoroutineVerticle() {
             router.mountSubRouter("/api", api.router())
         }
 
-        server.requestHandler(router).listenAwait(8080)
+        val webConfig = config.getJsonObject("webserver_config")
+
+        server.requestHandler(router).listenAwait(
+                webConfig.getInteger("port"),
+                webConfig.getString("host")
+        )
 
         Unit
 

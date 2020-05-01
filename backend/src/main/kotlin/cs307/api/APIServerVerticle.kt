@@ -14,6 +14,7 @@ import cs307.user.UserController
 import cs307.user.UserService
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.handler.BodyHandler
+import io.vertx.ext.web.handler.CorsHandler
 import io.vertx.ext.web.handler.SessionHandler
 import io.vertx.ext.web.sstore.LocalSessionStore
 import io.vertx.kotlin.coroutines.CoroutineVerticle
@@ -47,6 +48,15 @@ class APIServerVerticle : CoroutineVerticle() {
         }
 
         router = Router.router(vertx)
+
+        config.getJsonObject("webserver_config").getJsonArray("cors_origin").forEach {
+            it as String
+            router.route().handler(CorsHandler.create(it)
+                    .allowCredentials(true)
+                    .allowedHeader("Access-Control-Allow-Origin")
+                    .allowedHeader("Access-Control-Allow-Credentials")
+            )
+        }
 
         router.route().handler(BodyHandler.create())
         router.route().handler(

@@ -1,0 +1,6 @@
+{
+  "url": "jdbc:postgresql://localhost:25432/cs307proj",
+  "driver_class": "org.postgresql.Driver",
+  "user": "cs307proj",
+  "password": "cs307proj"
+}

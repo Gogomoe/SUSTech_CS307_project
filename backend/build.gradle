@@ -42,3 +42,23 @@ compileKotlin {
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
+
+task deplomentJar(type: Jar) {
+    from sourceSets.main.output - sourceSets.main.output.resourcesDir
+
+    dependsOn fileTree("src/deployment/resources")
+    from fileTree("src/deployment/resources").collect()
+
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) }
+    }
+
+    baseName 'deployment'
+
+    manifest {
+        attributes(
+                "Main-Class": "cs307.Main"
+        )
+    }
+}
