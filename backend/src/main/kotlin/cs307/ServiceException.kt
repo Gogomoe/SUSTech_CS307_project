@@ -1,4 +1,4 @@
-package moe.gogo
+package cs307
 
 class ServiceException : RuntimeException {
 

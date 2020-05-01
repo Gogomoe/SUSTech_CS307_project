@@ -1,6 +1,7 @@
 package cs307.train
 
 import cs307.Service
+import cs307.ServiceException
 import cs307.ServiceRegistry
 import cs307.database.DatabaseService
 import cs307.format.format
@@ -10,7 +11,6 @@ import io.vertx.ext.auth.AuthProvider
 import io.vertx.ext.jdbc.JDBCClient
 import io.vertx.kotlin.core.json.jsonArrayOf
 import io.vertx.kotlin.ext.sql.queryWithParamsAwait
-import moe.gogo.ServiceException
 import java.time.LocalDate
 
 

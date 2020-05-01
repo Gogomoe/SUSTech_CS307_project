@@ -1,13 +1,13 @@
 package cs307.train
 
 import cs307.CoroutineController
+import cs307.ServiceException
 import cs307.ServiceRegistry
 import cs307.format.toLocalDate
 import io.vertx.core.json.JsonArray
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 import io.vertx.kotlin.core.json.jsonObjectOf
-import moe.gogo.ServiceException
 
 class TrainController(registry: ServiceRegistry) : CoroutineController() {
 

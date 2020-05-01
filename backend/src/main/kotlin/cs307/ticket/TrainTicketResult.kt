@@ -1,9 +1,9 @@
 package cs307.ticket
 
+import cs307.ServiceException
 import cs307.train.SeatPriceCount
 import cs307.train.Train
 import cs307.train.TrainLineSeat
-import moe.gogo.ServiceException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock

@@ -1,6 +1,7 @@
 package cs307.user
 
 import cs307.Service
+import cs307.ServiceException
 import cs307.ServiceRegistry
 import cs307.database.DatabaseService
 import io.vertx.core.Vertx
@@ -22,7 +23,6 @@ import me.liuwj.ktorm.dsl.select
 import me.liuwj.ktorm.dsl.where
 import me.liuwj.ktorm.schema.Table
 import me.liuwj.ktorm.schema.varchar
-import moe.gogo.ServiceException
 
 
 class UserService : Service {
