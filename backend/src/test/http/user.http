@@ -1,15 +1,11 @@
 ### login
 POST http://localhost:8080/api/session
-Content-Type: multipart/form-data; boundary=WebAppBoundary
+Content-Type: application/json
 
---WebAppBoundary
-Content-Disposition: form-data; name="username"
-
-admin
---WebAppBoundary--
-Content-Disposition: form-data; name="password"
-
-admin
+{
+  "username": "admin",
+  "password": "admin"
+}
 
 ### get session
 GET http://localhost:8080/api/session

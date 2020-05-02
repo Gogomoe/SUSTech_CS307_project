@@ -34,9 +34,9 @@ class UserController(registry: ServiceRegistry) : CoroutineController() {
     }
 
     suspend fun handleLogin(context: RoutingContext) {
-        val params = context.request().formAttributes()
-        val username = params.get("username")
-        val password = params.get("password")
+        val params = context.bodyAsJson
+        val username = params.getString("username")
+        val password = params.getString("password")
 
         if (username == null || password == null || username.isEmpty() || password.isEmpty()) {
             throw ServiceException("Username or password is empty")
@@ -63,6 +63,5 @@ class UserController(registry: ServiceRegistry) : CoroutineController() {
                 )
         )
     }
-
 
 }
