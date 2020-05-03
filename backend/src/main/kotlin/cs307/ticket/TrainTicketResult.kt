@@ -74,7 +74,7 @@ class TrainTicketResult(val train: Train, trainLineSeat: TrainLineSeat, tickets:
         }
     }
 
-    private fun generateTicket(departStationID: StationID, arriveStationID: StationID, seatType: SeatType): Int {
+    fun generateTicket(departStationID: StationID, arriveStationID: StationID, seatType: SeatType): Int {
         if (departStationID !in stationToIndex || arriveStationID !in stationToIndex) {
             throw ServiceException("station not in the train line")
         }
@@ -106,6 +106,19 @@ class TrainTicketResult(val train: Train, trainLineSeat: TrainLineSeat, tickets:
                 return seatNum
             }
             throw ServiceException("no tickets remain")
+        }
+    }
+
+    fun retrieveTicket(departStationID: StationID, arriveStationID: StationID, seatType: SeatType, seatNum: Int) {
+        lock.tryLock(5000) {
+            val departIndex = stationToIndex[departStationID]!!
+            val arriveIndex = stationToIndex[arriveStationID]!!
+            val seat = seats[seatType]!![seatNum]
+            lockTickets(seatType, seat)
+            for (i in departIndex until arriveIndex) {
+                seat[i] = false
+            }
+            releaseTickets(seatType, seat)
         }
     }
 

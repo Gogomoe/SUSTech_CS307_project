@@ -1,17 +1,21 @@
 package cs307.ticket
 
 import cs307.Service
+import cs307.ServiceException
 import cs307.ServiceRegistry
 import cs307.database.DatabaseService
 import cs307.format.getDuration
 import cs307.memory.MemoryService
+import cs307.passenger.Passenger
 import cs307.train.TrainLineSeat
 import cs307.train.TrainStationPrice
 import cs307.train.toTrain
+import cs307.user.User
 import io.vertx.core.Vertx
 import io.vertx.ext.jdbc.JDBCClient
 import io.vertx.kotlin.core.json.jsonArrayOf
 import io.vertx.kotlin.ext.sql.queryWithParamsAwait
+import io.vertx.kotlin.ext.sql.updateWithParamsAwait
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,6 +34,33 @@ class TicketService : Service {
         database = registry[DatabaseService::class.java].client()
         vertx = registry.vertx()
         scope = CoroutineScope(Dispatchers.Default)
+    }
+
+    suspend fun putOrder(trainID: Int, user: User, passenger: Passenger, seatType: Int, departStationID: Int, arriveStationID: Int) {
+        val trainTicket = getTrainTicketResult(trainID);
+        val seatNum = trainTicket.generateTicket(departStationID, arriveStationID, seatType)
+        val result = database.updateWithParamsAwait(
+                """
+                INSERT INTO ticket_active
+                (ticket_id, train_id, depart_station, arrive_station, seat_id, seat_num, passenger_id, username)
+                VALUES (nextval('ticket_sequence'), ?, ?, ?, ?, ?, ?, ?);
+            """.trimIndent(),
+                jsonArrayOf(
+                        trainID,
+                        departStationID,
+                        arriveStationID,
+                        seatType,
+                        seatNum,
+                        passenger.id,
+                        user.username
+                )
+        )
+        if (result.updated == 1) {
+            return
+        } else {
+            trainTicket.retrieveTicket(departStationID, arriveStationID, seatType, seatNum)
+            throw ServiceException("generate ticket failed")
+        }
     }
 
     suspend fun getTrainTicketResult(train: Int): TrainTicketResult {
