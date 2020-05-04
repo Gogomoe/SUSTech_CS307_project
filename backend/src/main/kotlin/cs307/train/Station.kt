@@ -10,7 +10,7 @@ data class Station(
         val code: String
 )
 
-fun JsonObject.toStation(prefix: String): Station {
+fun JsonObject.toStation(prefix: String = ""): Station {
     return Station(
             getInteger("${prefix}st_id"),
             getString("${prefix}st_name"),

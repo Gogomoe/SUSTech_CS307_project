@@ -1,0 +1,21 @@
+GET http://localhost:8080/api/station/search/上海
+Accept: application/json
+
+###
+
+POST http://localhost:8080/api/station
+Content-Type: application/json
+
+{
+  "name": "博丽神社",
+  "city": "幻想乡",
+  "code": "GSOQ"
+}
+
+###
+
+DELETE http://localhost:8080/api/station/2557
+Accept: application/json
+
+###
+
