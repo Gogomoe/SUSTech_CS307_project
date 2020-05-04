@@ -18,7 +18,7 @@ class PassengerController(registry: ServiceRegistry) : CoroutineController() {
         router.post("/passenger").coroutineHandler(::handleAddPassenger)
         router.post("/passenger/:passenger_id").coroutineHandler(::handleModifyPassenger)
         router.delete("/passenger/:passenger_id").coroutineHandler(::handleDeletePassenger)
-        router.get("/passenger/of/:username").coroutineHandler(::handleGetAllPassengers)
+        router.get("/user/:username/passenger").coroutineHandler(::handleGetAllPassengers)
     }
 
     suspend fun handleAddPassenger(context: RoutingContext) {
@@ -88,6 +88,7 @@ class PassengerController(registry: ServiceRegistry) : CoroutineController() {
         val username = context.request().getParam("username") ?: throw ServiceException("username not found")
 
         if (username != user.user.username && !user.isAuthorizedAwait("admin")) {
+            println(username+" "+user.user.username+" "+user.isAuthorizedAwait("admin"))
             throw ServiceException("The user is invisible for you")
         }
 

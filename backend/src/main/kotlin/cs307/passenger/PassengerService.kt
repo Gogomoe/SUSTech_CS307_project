@@ -8,6 +8,7 @@ import io.vertx.ext.jdbc.JDBCClient
 import io.vertx.kotlin.core.json.jsonArrayOf
 import io.vertx.kotlin.ext.sql.queryWithParamsAwait
 import io.vertx.kotlin.ext.sql.updateWithParamsAwait
+import org.postgresql.util.PSQLException
 
 class PassengerService : Service {
 
@@ -22,11 +23,19 @@ class PassengerService : Service {
             throw ServiceException("invalid id number or phone")
         }
 
-        val result = database.updateWithParamsAwait("""
-            INSERT INTO passenger (name, people_id, phone, username) VALUES (?,?,?,?);
-        """.trimIndent(), jsonArrayOf(name, idNumber, phone, username))
+        try {
+            val result = database.updateWithParamsAwait("""
+                INSERT INTO passenger (name, people_id, phone, username) VALUES (?,?,?,?);
+            """.trimIndent(), jsonArrayOf(name, idNumber, phone, username))
 
-        return result.keys.toPassenger()
+            return result.keys.toPassenger()
+        } catch (e: PSQLException) {
+            if ((e.message ?: "").contains("重复键违反唯一约束")) {
+                throw ServiceException("can not insert the same passenger repeatedly")
+            } else {
+                throw e
+            }
+        }
     }
 
     suspend fun modifyPassenger(id: Int, name: String, idNumber: String, phone: String, username: String, isAdmin: Boolean): Passenger {
@@ -34,23 +43,31 @@ class PassengerService : Service {
             throw ServiceException("invalid id number or phone")
         }
 
-        val result = if (isAdmin) {
-            database.updateWithParamsAwait("""
+        try {
+            val result = if (isAdmin) {
+                database.updateWithParamsAwait("""
                 UPDATE passenger SET name = ?, people_id = ?, phone = ?
                 WHERE passenger_id = ?;
             """.trimIndent(), jsonArrayOf(name, idNumber, phone, id))
-        } else {
-            database.updateWithParamsAwait("""
+            } else {
+                database.updateWithParamsAwait("""
                 UPDATE passenger SET name = ?, people_id = ?, phone = ?
                 WHERE passenger_id = ? and username = ?;
             """.trimIndent(), jsonArrayOf(name, idNumber, phone, id, username))
-        }
+            }
 
-        if (result.keys.size() == 0) {
-            throw ServiceException("the passenger is invisible for you")
-        }
+            if (result.keys.size() == 0) {
+                throw ServiceException("the passenger is inexistent or the passenger is invisible for you")
+            }
 
-        return result.keys.toPassenger()
+            return result.keys.toPassenger()
+        } catch (e: PSQLException) {
+            if ((e.message ?: "").contains("重复键违反唯一约束")) {
+                throw ServiceException("can not modify a passenger to a existent passenger")
+            } else {
+                throw e
+            }
+        }
     }
 
     suspend fun deletePassenger(id: Int, username: String, isAdmin: Boolean): Passenger {
@@ -61,13 +78,18 @@ class PassengerService : Service {
         } else {
             database.updateWithParamsAwait("""
                 DELETE FROM passenger where passenger_id = ? and username = ?;
-            """.trimIndent(), jsonArrayOf(id,username))
+            """.trimIndent(), jsonArrayOf(id, username))
+        }
+
+        if (result.keys.size() == 0) {
+            throw ServiceException("the passenger is inexistent or the passenger is invisible for you")
         }
 
         return result.keys.toPassenger()
+
     }
 
-    suspend fun getAllPassengers(username: String):List<Passenger>{
+    suspend fun getAllPassengers(username: String): List<Passenger> {
         val result = database.queryWithParamsAwait("""
             SELECT ps.passenger_id        ps_passenger_id, 
                    ps.name                ps_name,
@@ -82,6 +104,6 @@ class PassengerService : Service {
     }
 
     private fun isValidPassenger(idNumber: String, phone: String): Boolean {
-        return true//TODO
+        return true // do not check
     }
 }

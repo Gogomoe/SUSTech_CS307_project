@@ -22,4 +22,4 @@ Content-Type: application/json
 DELETE http://localhost:8080/api/passenger/1
 
 ### get all passengers
-GET http://localhost:8080/api/passenger/of/user
+GET http://localhost:8080/api/user/admin/passenger
