@@ -14,3 +14,10 @@ Content-Type: application/json
 DELETE http://localhost:8080/api/ticket/2
 
 ###
+
+GET http://localhost:8080/api/ticket/2
+
+###
+
+GET http://localhost:8080/api/tickets/active
+

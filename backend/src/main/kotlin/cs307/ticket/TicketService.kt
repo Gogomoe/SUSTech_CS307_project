@@ -123,6 +123,132 @@ class TicketService : Service {
         trainTicket.retrieveTicket(ticket.departStation, ticket.arriveStation, ticket.seatType, ticket.seatNum)
     }
 
+    suspend fun getTicket(user: UserAuth, ticketID: Int): TicketInfo {
+        val ticket = getTicket(ticketID)
+
+        val canVisit = if (user.isAuthorizedAwait("admin")) {
+            true
+        } else {
+            ticket.username == user.user.username
+        }
+
+        if (!canVisit) {
+            throw ServiceException("permission denied, can not visit other's ticket")
+        }
+
+        val result = database.queryWithParamsAwait("""
+            SELECT ticket.ticket_id                             tk_id,
+                   train.train_id                               tk_tr_id,
+                   train.depart_date                            tk_tr_depart_date,
+                   train_static.train_static_id                 tk_tr_ts_id,
+                   train_static.code                            tk_tr_ts_code,
+                   train_static.type                            tk_tr_ts_type,
+                   train_static.depart_station                  tk_tr_ts_depart_station,
+                   train_static.arrive_station                  tk_tr_ts_arrive_station,
+                   EXTRACT(epoch FROM train_static.depart_time) tk_tr_ts_depart_time,
+                   EXTRACT(epoch FROM train_static.arrive_time) tk_tr_ts_arrive_time,
+                   depart.station_id                            tk_depart_st_id,
+                   depart.name                                  tk_depart_st_name,
+                   depart.city                                  tk_depart_st_city,
+                   depart.code                                  tk_depart_st_code,
+                   arrive.station_id                            tk_arrive_st_id,
+                   arrive.name                                  tk_arrive_st_name,
+                   arrive.city                                  tk_arrive_st_city,
+                   arrive.code                                  tk_arrive_st_code,
+                   train.depart_date + depart_s.depart_time     tk_depart_time,
+                   train.depart_date + arrive_s.arrive_time     tk_arrive_time,
+                   ticket.seat_id                               tk_seat,
+                   ticket.seat_num                              tk_seat_num,
+                   passenger.passenger_id                       tk_ps_passenger_id,
+                   passenger.name                               tk_ps_name,
+                   passenger.people_id                          tk_ps_people_id,
+                   passenger.phone                              tk_ps_phone,
+                   passenger.username                           tk_ps_username,
+                   ticket.username                              tk_username,
+                   ticket.valid                                 tk_valid,
+                   ticket.create_time                           tk_create_time,
+                   ticket.update_time                           tk_update_time
+            FROM (
+                     SELECT *
+                     FROM ticket_active
+                     WHERE ticket_id = ?
+                     UNION ALL
+                     SELECT *
+                     FROM ticket_history
+                     WHERE ticket_id = ?
+                 ) ticket
+                     JOIN
+                 (
+                     SELECT *
+                     FROM train_active
+                     WHERE train_id = ?
+                     UNION ALL
+                     SELECT *
+                     FROM train_history
+                     WHERE train_id = ?
+                 ) train ON ticket.train_id = train.train_id
+                     JOIN train_static ON train.train_static = train_static.train_static_id
+                     JOIN station depart ON depart.station_id = ticket.depart_station
+                     JOIN train_station depart_s ON train_static.train_static_id = depart_s.train_static_id
+                AND depart.station_id = depart_s.station_id
+                     JOIN station arrive ON arrive.station_id = ticket.arrive_station
+                     JOIN train_station arrive_s ON train_static.train_static_id = arrive_s.train_static_id
+                AND arrive.station_id = arrive_s.station_id
+                     JOIN passenger ON passenger.passenger_id = ticket.passenger_id;
+        """.trimIndent(), jsonArrayOf(ticketID, ticketID, ticket.train, ticket.train))
+        return result.rows.firstOrNull()?.toTicketInfo() ?: throw ServiceException("query error")
+    }
+
+    suspend fun getTickets(username: String, active: Boolean = true): List<TicketInfo> {
+        val fill = if (active) "active" else "history"
+        val result = database.queryWithParamsAwait("""
+            SELECT ticket.ticket_id                             tk_id,
+                   train.train_id                               tk_tr_id,
+                   train.depart_date                            tk_tr_depart_date,
+                   train_static.train_static_id                 tk_tr_ts_id,
+                   train_static.code                            tk_tr_ts_code,
+                   train_static.type                            tk_tr_ts_type,
+                   train_static.depart_station                  tk_tr_ts_depart_station,
+                   train_static.arrive_station                  tk_tr_ts_arrive_station,
+                   EXTRACT(epoch FROM train_static.depart_time) tk_tr_ts_depart_time,
+                   EXTRACT(epoch FROM train_static.arrive_time) tk_tr_ts_arrive_time,
+                   depart.station_id                            tk_depart_st_id,
+                   depart.name                                  tk_depart_st_name,
+                   depart.city                                  tk_depart_st_city,
+                   depart.code                                  tk_depart_st_code,
+                   arrive.station_id                            tk_arrive_st_id,
+                   arrive.name                                  tk_arrive_st_name,
+                   arrive.city                                  tk_arrive_st_city,
+                   arrive.code                                  tk_arrive_st_code,
+                   train.depart_date + depart_s.depart_time     tk_depart_time,
+                   train.depart_date + arrive_s.arrive_time     tk_arrive_time,
+                   ticket.seat_id                               tk_seat,
+                   ticket.seat_num                              tk_seat_num,
+                   passenger.passenger_id                       tk_ps_passenger_id,
+                   passenger.name                               tk_ps_name,
+                   passenger.people_id                          tk_ps_people_id,
+                   passenger.phone                              tk_ps_phone,
+                   passenger.username                           tk_ps_username,
+                   ticket.username                              tk_username,
+                   ticket.valid                                 tk_valid,
+                   ticket.create_time                           tk_create_time,
+                   ticket.update_time                           tk_update_time
+            FROM ticket_${fill} ticket
+                     JOIN train_${fill} train ON ticket.train_id = train.train_id
+                     JOIN train_static ON train.train_static = train_static.train_static_id
+                     JOIN station depart ON depart.station_id = ticket.depart_station
+                     JOIN train_station depart_s ON train_static.train_static_id = depart_s.train_static_id
+                AND depart.station_id = depart_s.station_id
+                     JOIN station arrive ON arrive.station_id = ticket.arrive_station
+                     JOIN train_station arrive_s ON train_static.train_static_id = arrive_s.train_static_id
+                AND arrive.station_id = arrive_s.station_id
+                     JOIN passenger ON passenger.passenger_id = ticket.passenger_id
+            WHERE ticket.username = ?
+            ORDER BY ticket.create_time;
+        """.trimIndent(), jsonArrayOf(username))
+        return result.rows.map { it.toTicketInfo() }
+    }
+
     suspend fun getTicket(ticketID: Int): Ticket {
         val result = database.queryWithParamsAwait("""
                     SELECT ticket_id      tk_id,

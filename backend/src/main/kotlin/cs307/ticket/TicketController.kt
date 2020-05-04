@@ -4,6 +4,7 @@ import cs307.CoroutineController
 import cs307.ServiceException
 import cs307.ServiceRegistry
 import cs307.user.getUser
+import io.vertx.core.json.JsonArray
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 import io.vertx.kotlin.core.json.jsonObjectOf
@@ -15,6 +16,8 @@ class TicketController(registry: ServiceRegistry) : CoroutineController() {
     override fun route(router: Router) {
         router.post("/ticket").coroutineHandler(::putOrder)
         router.delete("/ticket/:ticket").coroutineHandler(::cancelOrder)
+        router.get("/ticket/:ticket").coroutineHandler(::getTicket)
+        router.get("/tickets/:active_or_history").coroutineHandler(::getTickets)
     }
 
     suspend fun putOrder(context: RoutingContext) {
@@ -46,6 +49,32 @@ class TicketController(registry: ServiceRegistry) : CoroutineController() {
         service.cancelOrder(user, ticketID)
 
         context.success()
+    }
+
+    suspend fun getTicket(context: RoutingContext) {
+        val user = context.getUser() ?: throw ServiceException("please login")
+        val ticketID = context.request().getParam("ticket").toInt()
+
+        val ticket = service.getTicket(user, ticketID)
+
+        context.success(jsonObject = jsonObjectOf(
+                "ticket" to ticket.toJson()
+        ))
+    }
+
+    suspend fun getTickets(context: RoutingContext) {
+        val user = context.getUser() ?: throw ServiceException("please login")
+        val active = when (context.request().getParam("active_or_history")) {
+            "active" -> true
+            "history" -> false
+            else -> throw ServiceException("undefined operation")
+        }
+
+        val tickets = service.getTickets(user.user.username, active)
+
+        context.success(jsonObject = jsonObjectOf(
+                "tickets" to JsonArray(tickets.map { it.toJson() })
+        ))
     }
 
 }
