@@ -16,6 +16,11 @@ data class TrainStatic(
         val arriveTime: Duration
 )
 
+data class TrainStaticStationTime(
+        val station: Int,
+        val arriveTime: Duration,
+        val departTime: Duration
+)
 
 fun JsonObject.toTrainStatic(prefix: String): TrainStatic {
     return TrainStatic(
@@ -38,5 +43,13 @@ fun TrainStatic.toJson(): Any? {
             "arrive_station_id" to arriveStation,
             "depart_time" to departTime.format(),
             "arrive_time" to arriveTime.format()
+    )
+}
+
+fun JsonObject.toTrainStaticStationTime(prefix: String = ""): TrainStaticStationTime {
+    return TrainStaticStationTime(
+            getInteger("${prefix}tss_station"),
+            getDuration("${prefix}tss_arrive_time"),
+            getDuration("${prefix}tss_depart_time")
     )
 }

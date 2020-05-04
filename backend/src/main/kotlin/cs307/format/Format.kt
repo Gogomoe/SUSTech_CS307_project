@@ -39,3 +39,7 @@ fun JsonObject.getDuration(name: String): Duration {
 fun String.toLocalDate(): LocalDate {
     return LocalDate.from(dateFormatter.parse(this))
 }
+
+fun LocalDate.plusTime(duration: Duration): LocalDateTime {
+    return LocalDateTime.of(this, LocalTime.MIN).plus(duration)
+}

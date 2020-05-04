@@ -6,11 +6,12 @@ import cs307.ServiceRegistry
 import cs307.database.DatabaseService
 import cs307.format.getDuration
 import cs307.memory.MemoryService
-import cs307.passenger.Passenger
+import cs307.passenger.PassengerService
 import cs307.train.TrainLineSeat
+import cs307.train.TrainService
 import cs307.train.TrainStationPrice
 import cs307.train.toTrain
-import cs307.user.User
+import cs307.user.UserAuth
 import io.vertx.core.Vertx
 import io.vertx.ext.jdbc.JDBCClient
 import io.vertx.kotlin.core.json.jsonArrayOf
@@ -19,11 +20,14 @@ import io.vertx.kotlin.ext.sql.updateWithParamsAwait
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.time.LocalDateTime
 
 class TicketService : Service {
 
     private lateinit var store: MemoryService
     private lateinit var database: JDBCClient
+    private lateinit var trainService: TrainService
+    private lateinit var passengerService: PassengerService
 
     private lateinit var vertx: Vertx
 
@@ -32,11 +36,24 @@ class TicketService : Service {
     override suspend fun start(registry: ServiceRegistry) {
         store = registry[MemoryService::class.java]
         database = registry[DatabaseService::class.java].client()
+        trainService = registry[TrainService::class.java]
+        passengerService = registry[PassengerService::class.java]
         vertx = registry.vertx()
         scope = CoroutineScope(Dispatchers.Default)
     }
 
-    suspend fun putOrder(trainID: Int, user: User, passenger: Passenger, seatType: Int, departStationID: Int, arriveStationID: Int) {
+    suspend fun putOrder(trainID: Int, user: UserAuth, passengerID: Int, seatType: Int, departStationID: Int, arriveStationID: Int): Int {
+        val passengerBelongToUser = if (user.isAuthorizedAwait("admin")) {
+            true
+        } else {
+            passengerService.getAllPassengers(user.user.username).any {
+                it.id == passengerID
+            }
+        }
+        if (!passengerBelongToUser) {
+            throw ServiceException("permission denied, you can not buy ticket for the passenger")
+        }
+
         val trainTicket = getTrainTicketResult(trainID);
         val seatNum = trainTicket.generateTicket(departStationID, arriveStationID, seatType)
         val result = database.updateWithParamsAwait(
@@ -51,16 +68,79 @@ class TicketService : Service {
                         arriveStationID,
                         seatType,
                         seatNum,
-                        passenger.id,
-                        user.username
+                        passengerID,
+                        user.user.username
                 )
         )
         if (result.updated == 1) {
-            return
+            return result.keys.getInteger(0)
         } else {
             trainTicket.retrieveTicket(departStationID, arriveStationID, seatType, seatNum)
             throw ServiceException("generate ticket failed")
         }
+    }
+
+    suspend fun cancelOrder(user: UserAuth, ticketID: Int) {
+        val ticket = getTicket(ticketID)
+
+        val ticketCreateByUser = if (user.isAuthorizedAwait("admin")) {
+            true
+        } else {
+            user.user.username == ticket.username
+        }
+        if (!ticketCreateByUser) {
+            throw ServiceException("permission denied, you cancel others' ticket")
+        }
+
+        if (!ticket.valid) {
+            throw ServiceException("the ticket has been cancelled")
+        }
+
+        val trainNotDepart = if (user.isAuthorizedAwait("admin")) {
+            true
+        } else {
+            val timeTable = trainService.getTrainTimeTable(ticket.train)
+            timeTable.station
+                    .find { it.station == ticket.departStation }!!
+                    .departTime < LocalDateTime.now()
+        }
+
+        if (!trainNotDepart) {
+            throw ServiceException("the train has departed")
+        }
+
+        val result = database.updateWithParamsAwait("""
+            UPDATE ticket_active
+            SET valid = FALSE
+            WHERE ticket_id = ?;
+        """.trimIndent(), jsonArrayOf(ticketID))
+
+        if (result.updated != 1) {
+            throw ServiceException("cancel ticket failed")
+        }
+
+        val trainTicket = getTrainTicketResult(ticket.train)
+        trainTicket.retrieveTicket(ticket.departStation, ticket.arriveStation, ticket.seatType, ticket.seatNum)
+    }
+
+    suspend fun getTicket(ticketID: Int): Ticket {
+        val result = database.queryWithParamsAwait("""
+                    SELECT ticket_id      tk_id,
+                           train_id       tk_train,
+                           depart_station tk_depart_station,
+                           arrive_station tk_arrive_station,
+                           seat_id        tk_seat,
+                           seat_num       tk_seat_num,
+                           passenger_id   tk_passenger,
+                           username       tk_username,
+                           valid          tk_valid,
+                           create_time    tk_create_time,
+                           update_time    tk_update_time
+                    from ticket_active
+                    WHERE ticket_id = ?;
+                """.trimIndent(), jsonArrayOf(ticketID))
+        return result.rows.firstOrNull()?.toTicket()
+                ?: throw ServiceException("ticket not exist")
     }
 
     suspend fun getTrainTicketResult(train: Int): TrainTicketResult {

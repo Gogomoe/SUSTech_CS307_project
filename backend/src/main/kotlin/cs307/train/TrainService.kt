@@ -26,6 +26,54 @@ class TrainService : Service {
         tickets = registry[TicketService::class.java]
     }
 
+    suspend fun getTrain(train: Int): Train {
+        val result = database.queryWithParamsAwait("""
+            SELECT tr.tr_id,
+                   tr.tr_depart_date,
+                   ts.train_static_id                     tr_ts_id,
+                   ts.code                                tr_ts_code,
+                   ts.type                                tr_ts_type,
+                   ts.depart_station                      tr_ts_depart_station,
+                   ts.arrive_station                      tr_ts_arrive_station,
+                   EXTRACT(epoch FROM ts.depart_time)     tr_ts_depart_time,
+                   EXTRACT(epoch FROM ts.arrive_time)     tr_ts_arrive_time
+            FROM (SELECT train_id     tr_id,
+                         train_static tr_ts,
+                         depart_date  tr_depart_date
+                  FROM train_active
+                  WHERE train_active.train_id = ?
+                  UNION ALL
+                  SELECT train_id     tr_id,
+                         train_static tr_ts,
+                         depart_date  tr_depart_date
+                  FROM train_history
+                  WHERE train_history.train_id = ?) tr
+                     JOIN train_static ts ON tr.tr_ts = ts.train_static_id;
+        """.trimIndent(), jsonArrayOf(train, train))
+        if (result.rows.isEmpty()) {
+            throw ServiceException("train not exist")
+        }
+        return result.rows.first().toTrain()
+    }
+
+    suspend fun getTrainStaticStationTime(trainStatic: Int): List<TrainStaticStationTime> {
+        return database.queryWithParamsAwait("""
+            SELECT station_id                      tss_station,
+                   EXTRACT(epoch FROM arrive_time) tss_arrive_time,
+                   EXTRACT(epoch FROM depart_time) tss_depart_time
+            FROM train_station
+            WHERE train_static_id = ?
+            ORDER BY arrive_time;
+        """.trimIndent(), jsonArrayOf(trainStatic)).rows
+                .map { it.toTrainStaticStationTime() }
+    }
+
+    suspend fun getTrainTimeTable(train: Int): TrainTimeTable {
+        val t = getTrain(train)
+        val stations = getTrainStaticStationTime(t.static.id)
+        return TrainTimeTable.from(t, stations)
+    }
+
     suspend fun searchActiveTrainBetween(from: String, to: String, date: LocalDate): List<TrainBetween> {
         if (from.trim().length < 2 || to.trim().length < 2) {
             throw ServiceException("the name of station or city is too short, it must greater than 2")

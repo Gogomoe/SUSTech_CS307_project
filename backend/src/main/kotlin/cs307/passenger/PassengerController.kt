@@ -5,7 +5,6 @@ import cs307.ServiceException
 import cs307.ServiceRegistry
 import cs307.user.getUser
 import io.vertx.core.json.JsonArray
-import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 import io.vertx.kotlin.core.json.jsonObjectOf
@@ -88,7 +87,6 @@ class PassengerController(registry: ServiceRegistry) : CoroutineController() {
         val username = context.request().getParam("username") ?: throw ServiceException("username not found")
 
         if (username != user.user.username && !user.isAuthorizedAwait("admin")) {
-            println(username+" "+user.user.username+" "+user.isAuthorizedAwait("admin"))
             throw ServiceException("The user is invisible for you")
         }
 

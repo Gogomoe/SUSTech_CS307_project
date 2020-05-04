@@ -1,0 +1,16 @@
+POST http://localhost:8080/api/ticket
+Content-Type: application/json
+
+{
+  "train": 10159,
+  "seat": 1,
+  "from": 836,
+  "to": 42,
+  "passenger": 2
+}
+
+###
+
+DELETE http://localhost:8080/api/ticket/2
+
+###
