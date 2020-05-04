@@ -1,0 +1,25 @@
+### add passenger
+POST http://localhost:8080/api/passenger
+Content-Type: application/json
+
+{
+  "passenger_name": "张三",
+  "id_number": "130631190002140071",
+  "phone": "15813847777"
+}
+
+### modify passenger
+POST http://localhost:8080/api/passenger/1
+Content-Type: application/json
+
+{
+  "passenger_name": "李四",
+  "id_number": "130631190002140036",
+  "phone": "15813846666"
+}
+
+### delete passenger
+DELETE http://localhost:8080/api/passenger/1
+
+### get all passengers
+GET http://localhost:8080/api/passenger/of/user
