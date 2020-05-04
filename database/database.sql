@@ -139,8 +139,10 @@ CREATE TABLE IF NOT EXISTS passenger
 (
     passenger_id SERIAL       NOT NULL PRIMARY KEY,
     name         VARCHAR(100) NOT NULL,
-    people_id    CHAR(18)     NOT NULL UNIQUE,
-    phone        VARCHAR(20)  NOT NULL
+    people_id    CHAR(18)     NOT NULL,
+    phone        VARCHAR(20)  NOT NULL,
+    username     VARCHAR(255) NOT NULL REFERENCES "user" (username),
+    UNIQUE (people_id, username)
 );
 
 CREATE TABLE IF NOT EXISTS ticket_history
