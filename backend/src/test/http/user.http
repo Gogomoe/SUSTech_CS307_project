@@ -21,5 +21,7 @@ Accept: application/json
 GET http://localhost:8080/api/user/user
 Accept: application/json
 
-###
+### log out
+
+DELETE http://localhost:8080/api/session
 
