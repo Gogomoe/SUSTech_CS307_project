@@ -21,5 +21,22 @@ Accept: application/json
 GET http://localhost:8080/api/user/user
 Accept: application/json
 
-###
+### sign in
+POST http://localhost:8080/api/user
+Content-Type: application/json
 
+{
+  "username": "user_1",
+  "password": "user_1"
+}
+
+### endow role
+POST http://localhost:8080/api/user/user_1/role
+Content-Type: application/json
+
+{
+  "role": "admin"
+}
+
+### cancel role
+DELETE http://localhost:8080/api/user/user_1/role/admin

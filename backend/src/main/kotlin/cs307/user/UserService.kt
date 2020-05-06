@@ -16,6 +16,7 @@ import io.vertx.kotlin.core.json.jsonArrayOf
 import io.vertx.kotlin.ext.auth.authentication.authenticateAwait
 import io.vertx.kotlin.ext.sql.querySingleWithParamsAwait
 import io.vertx.kotlin.ext.sql.queryWithParamsAwait
+import io.vertx.kotlin.ext.sql.updateWithParamsAwait
 import me.liuwj.ktorm.database.Database
 import me.liuwj.ktorm.dsl.eq
 import me.liuwj.ktorm.dsl.from
@@ -23,6 +24,7 @@ import me.liuwj.ktorm.dsl.select
 import me.liuwj.ktorm.dsl.where
 import me.liuwj.ktorm.schema.Table
 import me.liuwj.ktorm.schema.varchar
+import org.postgresql.util.PSQLException
 
 
 class UserService : Service {
@@ -90,6 +92,49 @@ class UserService : Service {
                 jsonArrayOf(username)
         ) ?: throw ServiceException("User does not exist")
         return User(username, userInfo.getString(1))
+    }
+
+    suspend fun signUpUser(username: String, password: String) {
+
+        if (database.querySingleWithParamsAwait("""
+                SELECT username FROM "user" WHERE username = ?;
+            """.trimIndent(), jsonArrayOf(username)) != null) {
+            throw ServiceException("User has been existent")
+        }
+
+        val salt = hashStrategy.generateSalt()
+        val hashedPassword = hashStrategy.computeHash(password, salt, -1)
+
+        database.updateWithParamsAwait("""
+            INSERT INTO "user" (username, password, password_salt) VALUES (?,?,?);
+        """.trimIndent(), jsonArrayOf(username, hashedPassword, salt))
+
+        database.updateWithParamsAwait("""
+            INSERT INTO user_info (username, avatar) VALUES (?,null);
+        """.trimIndent(), jsonArrayOf(username))
+    }
+
+    suspend fun endowRoleForUser(username: String, role: String) {
+        try {
+            database.updateWithParamsAwait("""
+                INSERT INTO user_roles (username, role) VALUES (?,?);
+            """.trimIndent(), jsonArrayOf(username, role))
+        } catch (e: PSQLException) {
+            if ((e.message ?: "").contains("重复键违反唯一约束")) {
+                throw ServiceException("this user is already this role")
+            } else {
+                throw e
+            }
+        }
+    }
+
+    suspend fun cancelRoleForUser(username: String, role: String) {
+        val result = database.updateWithParamsAwait("""
+                DELETE FROM user_roles WHERE username = ? and role = ?;
+            """.trimIndent(), jsonArrayOf(username, role))
+        if(result.updated==0){
+            throw ServiceException("no such (user,role)")
+        }
     }
 
     object UserInfoMapping : Table<Nothing>("user_info".trim()) {

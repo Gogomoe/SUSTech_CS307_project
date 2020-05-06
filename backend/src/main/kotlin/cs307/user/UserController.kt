@@ -15,6 +15,9 @@ class UserController(registry: ServiceRegistry) : CoroutineController() {
         router.get("/session").coroutineHandler(::handleGetSession)
         router.post("/session").coroutineHandler(::handleLogin)
         router.get("/user/:username").coroutineHandler(::handleGetUser)
+        router.post("/user").coroutineHandler(::handleSignUp)
+        router.post("/user/:username/role").coroutineHandler(::handleEndowRole)
+        router.delete("/user/:username/role/:role").coroutineHandler(::handleCancelRole)
     }
 
     suspend fun handleGetSession(context: RoutingContext) {
@@ -64,4 +67,45 @@ class UserController(registry: ServiceRegistry) : CoroutineController() {
         )
     }
 
+    suspend fun handleSignUp(context: RoutingContext){
+        val params = context.bodyAsJson
+        val username = params.getString("username")
+        val password = params.getString("password")
+
+        if (username == null || password == null || username.isEmpty() || password.isEmpty()) {
+            throw ServiceException("Username or password is empty")
+        }
+
+        service.signUpUser(username,password)
+        handleLogin(context)
+    }
+
+    suspend fun handleEndowRole(context: RoutingContext){
+        val user = context.getUser()?:throw ServiceException("not login")
+        if(!user.isAuthorizedAwait("admin")){
+            throw ServiceException("No right")
+        }
+
+        val username = context.request().getParam("username")
+        val role = context.bodyAsJson.getString("role")
+
+        service.endowRoleForUser(username,role)
+
+        context.success()
+    }
+
+    suspend fun handleCancelRole(context: RoutingContext){
+        val user = context.getUser()?:throw ServiceException("not login")
+        if(!user.isAuthorizedAwait("admin")){
+            throw ServiceException("No right")
+        }
+
+        val params = context.request()
+        val username = params.getParam("username")
+        val role = params.getParam("role")
+
+        service.cancelRoleForUser(username,role)
+
+        context.success()
+    }
 }
