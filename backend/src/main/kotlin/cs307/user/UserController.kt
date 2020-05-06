@@ -15,6 +15,7 @@ class UserController(registry: ServiceRegistry) : CoroutineController() {
         router.get("/session").coroutineHandler(::handleGetSession)
         router.post("/session").coroutineHandler(::handleLogin)
         router.get("/user/:username").coroutineHandler(::handleGetUser)
+        router.delete("/session").coroutineHandler(::handleLogOut)
         router.post("/user").coroutineHandler(::handleSignUp)
         router.post("/user/:username/role").coroutineHandler(::handleEndowRole)
         router.delete("/user/:username/role/:role").coroutineHandler(::handleCancelRole)
@@ -50,6 +51,19 @@ class UserController(registry: ServiceRegistry) : CoroutineController() {
         context.put("user", user)
         context.session().regenerateId()
         context.session().put("user", user)
+
+        context.success()
+    }
+
+    suspend fun handleLogOut(context: RoutingContext) {
+
+        val user = context.getUser()
+        if (user != null) {
+            context.setUser(null)
+            context.put("user", null)
+            context.session().put("user", null)
+            context.session().regenerateId()
+        }
 
         context.success()
     }
