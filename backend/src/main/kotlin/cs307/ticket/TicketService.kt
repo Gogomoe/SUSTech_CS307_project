@@ -15,6 +15,7 @@ import cs307.user.UserAuth
 import io.vertx.core.Vertx
 import io.vertx.ext.jdbc.JDBCClient
 import io.vertx.kotlin.core.json.jsonArrayOf
+import io.vertx.kotlin.ext.jdbc.querySingleWithParamsAwait
 import io.vertx.kotlin.ext.sql.queryWithParamsAwait
 import io.vertx.kotlin.ext.sql.updateWithParamsAwait
 import kotlinx.coroutines.CoroutineScope
@@ -50,8 +51,31 @@ class TicketService : Service {
                 it.id == passengerID
             }
         }
+
         if (!passengerBelongToUser) {
             throw ServiceException("permission denied, you can not buy ticket for the passenger")
+        }
+
+        val existent = database.querySingleWithParamsAwait("""
+            SELECT true
+            FROM train_active ta
+            JOIN train_station sf ON ta.train_static = sf.train_static_id AND sf.station_id = ?
+            JOIN train_station st ON ta.train_static = st.train_static_id AND st.station_id = ?
+            WHERE train_id = ?
+            AND EXISTS(SELECT null
+                       FROM ticket_active tk
+                       JOIN train_active ta2 ON tk.train_id = ta2.train_id
+                       JOIN train_station sf2
+                           ON ta2.train_static = sf2.train_static_id AND tk.depart_station = sf2.station_id
+                       JOIN train_station st2
+                           ON ta2.train_static = st2.train_static_id AND tk.arrive_station = st2.station_id
+                  WHERE tk.passenger_id = ? 
+                  AND tk.valid
+                  AND NOT (sf2.depart_time + ta2.depart_date > st.arrive_time + ta.depart_date OR
+                        st2.arrive_time + ta2.depart_date < sf.depart_time + ta.depart_date));
+        """.trimIndent(), jsonArrayOf(departStationID,arriveStationID,trainID,passengerID))
+        if(existent!=null){
+            throw ServiceException("Travel plan conflict")
         }
 
         val trainTicket = getTrainTicketResult(trainID);
