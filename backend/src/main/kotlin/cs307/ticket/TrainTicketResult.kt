@@ -85,6 +85,9 @@ class TrainTicketResult(val train: Train, trainLine: TrainLine, tickets: List<Ti
             val departIndex = stationToIndex[departStationID]!!
             val arriveIndex = stationToIndex[arriveStationID]!!
             val seatsOfTypes = seats[seatType]!!
+            if (departIndex >= arriveIndex) {
+                throw ServiceException("reverse ticket")
+            }
             if (ticketRemain[seatType]!![departIndex to arriveIndex] == 0) {
                 throw ServiceException("no tickets remain")
             }
