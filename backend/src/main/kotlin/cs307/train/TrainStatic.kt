@@ -16,7 +16,7 @@ data class TrainStatic(
         val arriveTime: Duration
 )
 
-fun JsonObject.toTrainStatic(prefix: String): TrainStatic {
+fun JsonObject.toTrainStatic(prefix: String = ""): TrainStatic {
     return TrainStatic(
             this.getInteger("${prefix}ts_id"),
             this.getString("${prefix}ts_code"),
