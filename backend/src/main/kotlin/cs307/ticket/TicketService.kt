@@ -5,12 +5,13 @@ import cs307.ServiceException
 import cs307.ServiceRegistry
 import cs307.database.DatabaseService
 import cs307.format.getDuration
+import cs307.format.plusTime
 import cs307.memory.MemoryService
 import cs307.passenger.PassengerService
-import cs307.train.TrainLineSeat
 import cs307.train.TrainService
-import cs307.train.TrainStationPrice
 import cs307.train.toTrain
+import cs307.train.trainline.TrainLine
+import cs307.train.trainline.TrainLineStation
 import cs307.user.UserAuth
 import io.vertx.core.Vertx
 import io.vertx.ext.jdbc.JDBCClient
@@ -314,7 +315,7 @@ class TicketService : Service {
                             ORDER BY ts.arrive_time;
                         """.trimIndent(), jsonArrayOf(tr.static.id)
             ).rows
-            val stations = mutableListOf<TrainStationPrice>()
+            val stations = mutableListOf<TrainLineStation>()
             stationsRows.forEach {
                 val seatType = it.getInteger("seat_id")
                 val price = it.getInteger("remain_price")
@@ -326,10 +327,10 @@ class TicketService : Service {
                     (stations.last().prices as MutableMap)[seatType] = price
                 } else {
                     stations.add(
-                            TrainStationPrice(
+                            TrainLineStation(
                                     station,
-                                    arriveTime,
-                                    departTime,
+                                    tr.departDate.plusTime(arriveTime),
+                                    tr.departDate.plusTime(departTime),
                                     mutableMapOf(
                                             seatType to price
                                     )
@@ -355,7 +356,7 @@ class TicketService : Service {
                       AND valid;
                 """.trimIndent(), jsonArrayOf(train)).rows.map { it.toTicket() }
 
-            val trainLineSeat = TrainLineSeat(train, seatCount, stations)
+            val trainLineSeat = TrainLine(train, seatCount, stations)
 
             val trainTicketResult = TrainTicketResult(tr, trainLineSeat, tickets)
 

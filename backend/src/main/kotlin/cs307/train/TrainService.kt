@@ -6,6 +6,9 @@ import cs307.ServiceRegistry
 import cs307.database.DatabaseService
 import cs307.format.format
 import cs307.ticket.TicketService
+import cs307.train.timetable.TrainStaticStationTime
+import cs307.train.timetable.TrainTimeTable
+import cs307.train.timetable.toTrainStaticStationTime
 import cs307.user.UserService
 import io.vertx.ext.auth.AuthProvider
 import io.vertx.ext.jdbc.JDBCClient
