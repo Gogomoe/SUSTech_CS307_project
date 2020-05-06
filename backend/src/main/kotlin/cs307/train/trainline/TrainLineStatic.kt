@@ -9,3 +9,8 @@ data class TrainLineStaticStation(
         val prices: Map<Int, Int>
 )
 
+data class TrainLineStatic(
+        val static: Int,
+        val seatCount: Map<Int, Int>,
+        val stations: List<TrainLineStaticStation>
+)

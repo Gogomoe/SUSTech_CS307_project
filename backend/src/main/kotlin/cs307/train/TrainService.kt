@@ -14,7 +14,6 @@ import io.vertx.kotlin.core.json.jsonArrayOf
 import io.vertx.kotlin.ext.sql.queryWithParamsAwait
 import java.time.LocalDate
 
-
 class TrainService : Service {
 
     private lateinit var database: JDBCClient
@@ -55,6 +54,24 @@ class TrainService : Service {
             throw ServiceException("train not exist")
         }
         return result.rows.first().toTrain()
+    }
+
+    suspend fun getActiveTrain(train: Int): Train {
+        return database.queryWithParamsAwait("""
+            SELECT tr.train_id                        tr_id,
+                   tr.depart_date                     tr_depart_date,
+                   ts.train_static_id                 tr_ts_id,
+                   ts.code                            tr_ts_code,
+                   ts.type                            tr_ts_type,
+                   ts.depart_station                  tr_ts_depart_station,
+                   ts.arrive_station                  tr_ts_arrive_station,
+                   EXTRACT(epoch FROM ts.depart_time) tr_ts_depart_time,
+                   EXTRACT(epoch FROM ts.arrive_time) tr_ts_arrive_time
+            FROM train_active tr
+                     JOIN train_static ts ON tr.train_static = ts.train_static_id
+            WHERE tr.train_id = ?;
+        """.trimIndent(), jsonArrayOf(train)).rows.firstOrNull()?.toTrain()
+                ?: throw ServiceException("train not exist")
     }
 
     suspend fun getTrainStatic(static: Int): TrainStatic {

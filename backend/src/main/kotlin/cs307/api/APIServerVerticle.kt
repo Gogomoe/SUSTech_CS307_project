@@ -15,6 +15,7 @@ import cs307.train.StationController
 import cs307.train.StationService
 import cs307.train.TrainController
 import cs307.train.TrainService
+import cs307.train.trainline.TrainLineService
 import cs307.user.UserController
 import cs307.user.UserService
 import io.vertx.ext.web.Router
@@ -42,6 +43,7 @@ class APIServerVerticle : CoroutineVerticle() {
                 MemoryService::class.java to MemoryService(),
                 UserService::class.java to UserService(),
                 StationService::class.java to StationService(),
+                TrainLineService::class.java to TrainLineService(),
                 TicketService::class.java to TicketService(),
                 TrainService::class.java to TrainService(),
                 PassengerService::class.java to PassengerService()
