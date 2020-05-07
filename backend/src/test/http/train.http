@@ -3,3 +3,11 @@ GET http://localhost:8080/api/train/from/十堰/to/武当山/date/2020-05-04
 Accept: application/json
 
 ###
+
+GET http://localhost:8080/api/train/1234/timetable
+
+###
+
+GET http://localhost:8080/api/train/static/1234/timetable
+
+###
