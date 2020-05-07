@@ -40,6 +40,19 @@ fun String.toLocalDate(): LocalDate {
     return LocalDate.from(dateFormatter.parse(this))
 }
 
+fun String.toDuration(): Duration {
+    val ints = this.split(':').map { it.toInt() }
+    val size = ints.size
+    if (size < 3 || size > 4) {
+        throw IllegalArgumentException("format of duration is invalid")
+    }
+    var seconds = ints[size - 1] + ints[size - 2] * 60 + ints[size - 3] * 60 * 60
+    if (size == 4) {
+        seconds += ints[0] * 24 * 60 * 60
+    }
+    return Duration.ofSeconds(seconds.toLong())
+}
+
 fun LocalDate.plusTime(duration: Duration): LocalDateTime {
     return LocalDateTime.of(this, LocalTime.MIN).plus(duration)
 }

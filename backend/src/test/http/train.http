@@ -1,5 +1,5 @@
 ### get tarin between
-GET http://localhost:8080/api/train/from/十堰/to/武当山/date/2020-05-04
+GET http://localhost:8080/api/train/from/深圳/to/上海/date/2020-05-01
 Accept: application/json
 
 ###
@@ -11,3 +11,54 @@ GET http://localhost:8080/api/train/1234/timetable
 GET http://localhost:8080/api/train/static/1234/timetable
 
 ###
+
+GET http://localhost:8080/api/train/static/1234/trainline
+
+### 添加线路
+### 时间可以用 时:分:秒 表示，也可以用 日:时:分:秒
+
+POST http://localhost:8080/api/train/static
+Content-Type: application/json
+
+{
+  "code": "广重36号",
+  "type": "广重号",
+  "seat": {
+    "1": 100,
+    "2": 200
+  },
+  "stations": [
+    {
+      "station": 1,
+      "arriveTime": "9:57:00",
+      "departTime": "10:00:00",
+      "prices": {
+        "1": 600,
+        "2": 900
+      }
+    },
+    {
+      "station": 100,
+      "arriveTime": "34:57:00",
+      "departTime": "35:00:00",
+      "prices": {
+        "1": 200,
+        "2": 300
+      }
+    },
+    {
+      "station": 123,
+      "arriveTime": "1:18:57:00",
+      "departTime": "1:19:00:00",
+      "prices": {
+        "1": 0,
+        "2": 0
+      }
+    }
+  ]
+}
+
+###
+
+DELETE http://localhost:8080/api/train/static/11602
+

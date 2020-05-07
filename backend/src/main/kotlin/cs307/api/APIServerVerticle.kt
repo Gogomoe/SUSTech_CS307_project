@@ -15,6 +15,7 @@ import cs307.train.StationController
 import cs307.train.StationService
 import cs307.train.TrainController
 import cs307.train.TrainService
+import cs307.train.trainline.TrainLineController
 import cs307.train.trainline.TrainLineService
 import cs307.user.UserController
 import cs307.user.UserService
@@ -83,6 +84,7 @@ class APIServerVerticle : CoroutineVerticle() {
         val controllers: List<Controller> = listOf(
                 UserController(registry),
                 TrainController(registry),
+                TrainLineController(registry),
                 StationController(registry),
                 PassengerController(registry),
                 TicketController(registry)
