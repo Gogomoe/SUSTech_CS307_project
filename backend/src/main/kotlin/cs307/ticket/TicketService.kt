@@ -63,12 +63,13 @@ class TicketService : Service {
             WHERE train_id = ?
             AND EXISTS(SELECT null
                        FROM ticket_active tk
+                       JOIN passenger ps ON tk.passenger_id = ps.passenger_id
                        JOIN train_active ta2 ON tk.train_id = ta2.train_id
                        JOIN train_station sf2
                            ON ta2.train_static = sf2.train_static_id AND tk.depart_station = sf2.station_id
                        JOIN train_station st2
                            ON ta2.train_static = st2.train_static_id AND tk.arrive_station = st2.station_id
-                  WHERE tk.passenger_id = ? 
+                  WHERE ps.people_id = (SELECT people_id FROM passenger WHERE passenger_id = ?)
                   AND tk.valid
                   AND NOT (sf2.depart_time + ta2.depart_date > st.arrive_time + ta.depart_date OR
                         st2.arrive_time + ta2.depart_date < sf.depart_time + ta.depart_date));
