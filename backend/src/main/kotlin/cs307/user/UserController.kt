@@ -3,6 +3,7 @@ package cs307.user
 import cs307.CoroutineController
 import cs307.ServiceException
 import cs307.ServiceRegistry
+import io.vertx.core.json.JsonArray
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 import io.vertx.kotlin.core.json.jsonObjectOf
@@ -16,6 +17,7 @@ class UserController(registry: ServiceRegistry) : CoroutineController() {
         router.post("/session").coroutineHandler(::handleLogin)
         router.get("/user/:username").coroutineHandler(::handleGetUser)
         router.delete("/session").coroutineHandler(::handleLogOut)
+        router.get("/users").coroutineHandler(::handleGetAllUser)
         router.post("/user").coroutineHandler(::handleSignUp)
         router.post("/user/:username/role").coroutineHandler(::handleEndowRole)
         router.delete("/user/:username/role/:role").coroutineHandler(::handleCancelRole)
@@ -81,7 +83,21 @@ class UserController(registry: ServiceRegistry) : CoroutineController() {
         )
     }
 
-    suspend fun handleSignUp(context: RoutingContext){
+    suspend fun handleGetAllUser(context: RoutingContext) {
+        val user = context.getUser()
+        val havePermission = user?.isAuthorizedAwait("admin") ?: false
+        if (!havePermission) {
+            throw ServiceException("permission denied")
+        }
+
+        val result = service.getAllUser()
+
+        context.success(jsonObject = jsonObjectOf(
+                "users" to JsonArray(result.map { it.toJson() })
+        ))
+    }
+
+    suspend fun handleSignUp(context: RoutingContext) {
         val params = context.bodyAsJson
         val username = params.getString("username")
         val password = params.getString("password")
@@ -90,27 +106,27 @@ class UserController(registry: ServiceRegistry) : CoroutineController() {
             throw ServiceException("Username or password is empty")
         }
 
-        service.signUpUser(username,password)
+        service.signUpUser(username, password)
         handleLogin(context)
     }
 
-    suspend fun handleEndowRole(context: RoutingContext){
-        val user = context.getUser()?:throw ServiceException("not login")
-        if(!user.isAuthorizedAwait("admin")){
+    suspend fun handleEndowRole(context: RoutingContext) {
+        val user = context.getUser() ?: throw ServiceException("not login")
+        if (!user.isAuthorizedAwait("admin")) {
             throw ServiceException("No right")
         }
 
         val username = context.request().getParam("username")
         val role = context.bodyAsJson.getString("role")
 
-        service.endowRoleForUser(username,role)
+        service.endowRoleForUser(username, role)
 
         context.success()
     }
 
-    suspend fun handleCancelRole(context: RoutingContext){
-        val user = context.getUser()?:throw ServiceException("not login")
-        if(!user.isAuthorizedAwait("admin")){
+    suspend fun handleCancelRole(context: RoutingContext) {
+        val user = context.getUser() ?: throw ServiceException("not login")
+        if (!user.isAuthorizedAwait("admin")) {
             throw ServiceException("No right")
         }
 
@@ -118,7 +134,7 @@ class UserController(registry: ServiceRegistry) : CoroutineController() {
         val username = params.getParam("username")
         val role = params.getParam("role")
 
-        service.cancelRoleForUser(username,role)
+        service.cancelRoleForUser(username, role)
 
         context.success()
     }
