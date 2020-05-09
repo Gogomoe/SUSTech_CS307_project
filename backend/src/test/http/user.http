@@ -47,3 +47,8 @@ Content-Type: application/json
 ### cancel role
 
 DELETE http://localhost:8080/api/user/user_1/role/admin
+
+### get all user
+
+GET http://localhost:8080/api/users
+
