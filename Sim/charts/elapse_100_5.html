@@ -1,0 +1,65 @@
+<script src="https://cdn.bootcss.com/babel-polyfill/6.23.0/polyfill.min.js"></script>
+<script src="https://unpkg.com/frappe-charts@1.1.0"></script>
+<script src="http://libs.baidu.com/jquery/1.9.1/jquery.min.js"></script>
+<script src="../queryOnly/sz_gz_100_5.js"></script>
+<script src="../queryOnly/wh_gz_100_5.js"></script>
+<script src="../queryOnly/fz_gz_100_5.js"></script>
+<script>
+    let chart = null;
+    const sz_gz = JSON.parse(sz_gz_100_5)
+    const wh_gz = JSON.parse(wh_gz_100_5)
+    const fz_gz = JSON.parse(fz_gz_100_5)
+    window.onload = function () {
+        let labels = ['cnt'];
+        for (let i=1;i<sz_gz.elapsed.length;i++){
+            labels[i] = i;
+        }
+        chart = new frappe.Chart("#chart", { // or DOM element
+            data: {
+                labels: labels,
+                datasets: [{
+                    name: "sz to gz",
+                    chartType: 'line',
+                    values: sz_gz.elapsed
+                }, {
+                    name: "wh to gz",
+                    chartType: "line",
+                    values: wh_gz.elapsed
+                }, {
+                    name: "fz to gz",
+                    chartType: "line",
+                    values: fz_gz.elapsed
+                }],
+                yMarkers: [{label: "Elapse (ms)", value: 6000, options: {labelPos: 'left'}}]
+            },
+            lineOptions: {
+                hideDots: 1
+            },
+            title: "The elapse of 100 concurrent requests",
+            type: 'line', // or 'bar', 'line', 'pie', 'percentage'
+            height: 600,
+            axisOptions: {
+                xIsSeries: 1,
+                yAxisMode: 'span',
+                xAxisMode: 'tick'
+            },
+            colors: ['light-blue', 'green', 'red', 'light-blue', 'grey'],
+
+            tooltipOptions: {
+                formatTooltipX: d => (d + '').toUpperCase(),
+                formatTooltipY: d => d + ' pts',
+            }
+        });
+        // chart.export()
+        $('.title').css({fontSize: '20px', fill: 'rgb(0,0,0)'})
+        $('.chart-label').css({fontSize: '12px'})
+    };
+
+    function myClick() {
+        chart.export()
+    }
+</script>
+<body>
+<div id="chart"></div>
+<button id="ex" onclick="myClick()"> Export</button>
+</body>
