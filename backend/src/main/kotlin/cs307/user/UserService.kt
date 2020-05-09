@@ -152,7 +152,8 @@ class UserService : Service {
                 INSERT INTO user_roles (username, role) VALUES (?,?);
             """.trimIndent(), jsonArrayOf(username, role))
         } catch (e: PSQLException) {
-            if ((e.message ?: "").contains("重复键违反唯一约束")) {
+            if ((e.message ?: "").contains("重复键违反唯一约束")||
+                    (e.message ?: "").contains("unique constraint")) {
                 throw ServiceException("this user is already this role")
             } else {
                 throw e
