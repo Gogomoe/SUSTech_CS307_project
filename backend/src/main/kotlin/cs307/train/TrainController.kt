@@ -5,6 +5,7 @@ import cs307.ServiceException
 import cs307.ServiceRegistry
 import cs307.format.toLocalDate
 import cs307.train.timetable.toJson
+import cs307.user.getUser
 import io.vertx.core.json.JsonArray
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
@@ -18,6 +19,9 @@ class TrainController(registry: ServiceRegistry) : CoroutineController() {
         router.get("/train/from/:from/to/:to/date/:date").coroutineHandler(::getActiveTrainBetween)
         router.get("/train/:train/timetable").coroutineHandler(::getTrainTimeTable)
         router.get("/train/static/:static/timetable").coroutineHandler(::getTrainStaticTimeTable)
+
+        router.post("/train").coroutineHandler(::addTrain)
+        router.delete("/train/:train").coroutineHandler(::deleteTrain)
     }
 
     suspend fun getActiveTrainBetween(context: RoutingContext) {
@@ -56,6 +60,37 @@ class TrainController(registry: ServiceRegistry) : CoroutineController() {
         context.success(jsonObject = jsonObjectOf(
                 "timetable" to timetable.toJson()
         ))
+    }
+
+    suspend fun addTrain(context: RoutingContext) {
+        val user = context.getUser() ?: throw ServiceException("not login")
+        if (!user.isAuthorizedAwait("admin")) {
+            throw ServiceException("permission denied")
+        }
+        val body = context.bodyAsJson
+        val static = body.getInteger("static")?.toInt()
+                ?: throw ServiceException("static is empty")
+        val date = body.getString("date")?.toLocalDate()
+                ?: throw ServiceException("date is empty")
+
+        val trainID = service.addTrain(static, date)
+
+        context.success(jsonObject = jsonObjectOf(
+                "train" to trainID
+        ))
+    }
+
+    suspend fun deleteTrain(context: RoutingContext) {
+        val user = context.getUser() ?: throw ServiceException("not login")
+        if (!user.isAuthorizedAwait("admin")) {
+            throw ServiceException("permission denied")
+        }
+
+        val trainID = context.request().getParam("train")!!.toInt()
+
+        service.deleteTrain(trainID)
+
+        context.success()
     }
 
 }

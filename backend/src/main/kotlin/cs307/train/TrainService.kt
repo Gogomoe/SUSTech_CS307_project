@@ -11,7 +11,9 @@ import cs307.user.UserService
 import io.vertx.ext.auth.AuthProvider
 import io.vertx.ext.jdbc.JDBCClient
 import io.vertx.kotlin.core.json.jsonArrayOf
+import io.vertx.kotlin.ext.sql.querySingleWithParamsAwait
 import io.vertx.kotlin.ext.sql.queryWithParamsAwait
+import io.vertx.kotlin.ext.sql.updateWithParamsAwait
 import java.time.LocalDate
 
 class TrainService : Service {
@@ -193,6 +195,46 @@ class TrainService : Service {
             val trainTicketResult = tickets.getTrainTicketResult(it.train.id)
             val ticketInfo = trainTicketResult.ticketInfo(it.departStation.id, it.arriveStation.id)
             it.seat.putAll(ticketInfo)
+        }
+    }
+
+    suspend fun addTrain(static: Int, date: LocalDate): Int {
+        val count = database.querySingleWithParamsAwait("""
+            SELECT (SELECT COUNT(*) FROM train_active WHERE train_static = ? AND depart_date = ?) +
+                   (SELECT COUNT(*) FROM train_history WHERE train_static = ? AND depart_date = ?) count;
+        """.trimIndent(), jsonArrayOf(static, date, static, date)
+        )!!.getInteger(0)
+
+        if (count != 0) {
+            throw ServiceException("train already exist")
+        }
+
+        val result = database.updateWithParamsAwait("""
+            INSERT INTO train_active (train_id, train_static, depart_date)
+            VALUES (nextval('train_sequence'), ?, ?);
+        """.trimIndent(), jsonArrayOf(static, date))
+
+        if (result.updated != 1) {
+            throw ServiceException("insert train error")
+        }
+
+        return result.keys.getInteger(0)
+
+    }
+
+    suspend fun deleteTrain(trainID: Int) {
+        val result1 = database.updateWithParamsAwait("""
+            DELETE FROM train_active WHERE train_id = ?;
+        """.trimIndent(), jsonArrayOf(trainID))
+
+        val result2 = database.updateWithParamsAwait("""
+            DELETE FROM train_history WHERE train_id = ?;
+        """.trimIndent(), jsonArrayOf(trainID))
+
+        val updated = result1.updated + result2.updated
+
+        if (updated != 1) {
+            throw ServiceException("delete train error")
         }
     }
 
