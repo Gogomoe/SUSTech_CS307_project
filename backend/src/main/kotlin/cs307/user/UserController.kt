@@ -4,6 +4,7 @@ import cs307.CoroutineController
 import cs307.ServiceException
 import cs307.ServiceRegistry
 import io.vertx.core.json.JsonArray
+import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 import io.vertx.kotlin.core.json.jsonObjectOf
@@ -21,6 +22,8 @@ class UserController(registry: ServiceRegistry) : CoroutineController() {
         router.post("/user").coroutineHandler(::handleSignUp)
         router.post("/user/:username/role").coroutineHandler(::handleEndowRole)
         router.delete("/user/:username/role/:role").coroutineHandler(::handleCancelRole)
+
+        router.get("/roles").coroutineHandler(::getAllRoles)
     }
 
     suspend fun handleGetSession(context: RoutingContext) {
@@ -139,4 +142,18 @@ class UserController(registry: ServiceRegistry) : CoroutineController() {
 
         context.success()
     }
+
+    suspend fun getAllRoles(context: RoutingContext) {
+        val user = context.getUser() ?: throw ServiceException("not login")
+        if (!user.isAuthorizedAwait("admin")) {
+            throw ServiceException("permission deny")
+        }
+
+        val result = service.getAllRoles()
+
+        context.success(jsonObject = jsonObjectOf(
+                "roles" to JsonObject(result.mapValues { JsonArray(it.value.toList()) })
+        ))
+    }
+
 }

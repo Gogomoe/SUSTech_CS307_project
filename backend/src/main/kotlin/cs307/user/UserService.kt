@@ -152,7 +152,7 @@ class UserService : Service {
                 INSERT INTO user_roles (username, role) VALUES (?,?);
             """.trimIndent(), jsonArrayOf(username, role))
         } catch (e: PSQLException) {
-            if ((e.message ?: "").contains("重复键违反唯一约束")||
+            if ((e.message ?: "").contains("重复键违反唯一约束") ||
                     (e.message ?: "").contains("unique constraint")) {
                 throw ServiceException("this user is already this role")
             } else {
@@ -185,6 +185,22 @@ class UserService : Service {
                     }
             promise.complete(result.firstOrNull())
         } ?: throw ServiceException("User does not exist")
+    }
+
+    suspend fun getAllRoles(): Map<String, Set<String>> {
+        val map = mutableMapOf<String, MutableSet<String>>()
+        val result = database.queryAwait("""
+            SELECT role, perm
+            FROM roles_perms;
+        """.trimIndent())
+        for (row in result.rows) {
+            val role = row.getString("role")
+            val permission = row.getString("perm")
+
+            val rolePerm = map.getOrPut(role) { mutableSetOf() }
+            rolePerm.add(permission)
+        }
+        return map
     }
 
 }
