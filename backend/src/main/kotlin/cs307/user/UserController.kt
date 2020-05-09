@@ -91,7 +91,8 @@ class UserController(registry: ServiceRegistry) : CoroutineController() {
         }
 
         service.signUpUser(username,password)
-        handleLogin(context)
+
+        context.success()
     }
 
     suspend fun handleEndowRole(context: RoutingContext){
