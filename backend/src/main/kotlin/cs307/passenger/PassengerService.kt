@@ -30,7 +30,8 @@ class PassengerService : Service {
 
             return result.keys.toPassenger()
         } catch (e: PSQLException) {
-            if ((e.message ?: "").contains("重复键违反唯一约束")) {
+            if ((e.message ?: "").contains("重复键违反唯一约束")||
+                    (e.message ?: "").contains("unique constraint")) {
                 throw ServiceException("can not insert the same passenger repeatedly")
             } else {
                 throw e
@@ -62,7 +63,8 @@ class PassengerService : Service {
 
             return result.keys.toPassenger()
         } catch (e: PSQLException) {
-            if ((e.message ?: "").contains("重复键违反唯一约束")) {
+            if ((e.message ?: "").contains("重复键违反唯一约束")||
+                    (e.message ?: "").contains("unique constraint")) {
                 throw ServiceException("can not modify a passenger to a existent passenger")
             } else {
                 throw e

@@ -45,4 +45,17 @@ fun UserAuth.toJson(): JsonObject = jsonObjectOf(
         "perms" to json { array(permissions) }
 )
 
+data class UserWithPermissionInfo(
+        val user: User,
+        val roles: List<String>,
+        val permissions: List<String>
+)
+
+fun UserWithPermissionInfo.toJson(): JsonObject = jsonObjectOf(
+        "username" to user.username,
+        "avatar" to (user.avatar ?: defaultAvatar()),
+        "roles" to json { array(roles) },
+        "perms" to json { array(permissions) }
+)
+
 fun defaultAvatar(): String = "/avatar/default.jpg"

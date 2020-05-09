@@ -3,7 +3,7 @@ package cs307.ticket
 import cs307.ServiceException
 import cs307.train.SeatPriceCount
 import cs307.train.Train
-import cs307.train.TrainLineSeat
+import cs307.train.trainline.TrainLine
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
@@ -12,7 +12,7 @@ private typealias StationID = Int
 private typealias StationIndex = Int
 private typealias SeatType = Int
 
-class TrainTicketResult(val train: Train, trainLineSeat: TrainLineSeat, tickets: List<Ticket>) {
+class TrainTicketResult(val train: Train, trainLine: TrainLine, tickets: List<Ticket>) {
 
 
     private val lock = ReentrantLock()
@@ -29,15 +29,15 @@ class TrainTicketResult(val train: Train, trainLineSeat: TrainLineSeat, tickets:
 
     init {
 
-        val stations = trainLineSeat.stations.size
+        val stations = trainLine.stations.size
 
         seatCount = mutableMapOf()
-        trainLineSeat.seatCount.forEach { (seatType, count) ->
+        trainLine.seatCount.forEach { (seatType, count) ->
             seatCount[seatType] = count
         }
 
         stationToIndex = mutableMapOf()
-        trainLineSeat.stations.forEachIndexed { index, trainStation ->
+        trainLine.stations.forEachIndexed { index, trainStation ->
             stationToIndex[trainStation.station] = index
         }
 
@@ -54,7 +54,7 @@ class TrainTicketResult(val train: Train, trainLineSeat: TrainLineSeat, tickets:
 
             ticketPrice[seatType] = IntArray(stations)
             for (i in 0 until stations) {
-                ticketPrice[seatType]!![i] = trainLineSeat.stations[i].prices[seatType]!!
+                ticketPrice[seatType]!![i] = trainLine.stations[i].prices[seatType]!!
             }
 
             seats[seatType] = Array(count) { BooleanArray(stations - 1) }
@@ -85,6 +85,9 @@ class TrainTicketResult(val train: Train, trainLineSeat: TrainLineSeat, tickets:
             val departIndex = stationToIndex[departStationID]!!
             val arriveIndex = stationToIndex[arriveStationID]!!
             val seatsOfTypes = seats[seatType]!!
+            if (departIndex >= arriveIndex) {
+                throw ServiceException("reverse ticket")
+            }
             if (ticketRemain[seatType]!![departIndex to arriveIndex] == 0) {
                 throw ServiceException("no tickets remain")
             }

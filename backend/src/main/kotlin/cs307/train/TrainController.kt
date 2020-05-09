@@ -4,6 +4,7 @@ import cs307.CoroutineController
 import cs307.ServiceException
 import cs307.ServiceRegistry
 import cs307.format.toLocalDate
+import cs307.train.timetable.toJson
 import io.vertx.core.json.JsonArray
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
@@ -15,6 +16,8 @@ class TrainController(registry: ServiceRegistry) : CoroutineController() {
 
     override fun route(router: Router) {
         router.get("/train/from/:from/to/:to/date/:date").coroutineHandler(::getActiveTrainBetween)
+        router.get("/train/:train/timetable").coroutineHandler(::getTrainTimeTable)
+        router.get("/train/static/:static/timetable").coroutineHandler(::getTrainStaticTimeTable)
     }
 
     suspend fun getActiveTrainBetween(context: RoutingContext) {
@@ -35,6 +38,24 @@ class TrainController(registry: ServiceRegistry) : CoroutineController() {
                         })
                 )
         )
+    }
+
+    suspend fun getTrainTimeTable(context: RoutingContext) {
+        val train = context.request().getParam("train").toInt()
+        val timetable = service.getTrainTimetableInfo(train)
+
+        context.success(jsonObject = jsonObjectOf(
+                "timetable" to timetable.toJson()
+        ))
+    }
+
+    suspend fun getTrainStaticTimeTable(context: RoutingContext) {
+        val static = context.request().getParam("static").toInt()
+        val timetable = service.getTrainStaticTimetableInfo(static)
+
+        context.success(jsonObject = jsonObjectOf(
+                "timetable" to timetable.toJson()
+        ))
     }
 
 }

@@ -14,6 +14,7 @@ import io.vertx.ext.jdbc.JDBCClient
 import io.vertx.kotlin.core.executeBlockingAwait
 import io.vertx.kotlin.core.json.jsonArrayOf
 import io.vertx.kotlin.ext.auth.authentication.authenticateAwait
+import io.vertx.kotlin.ext.sql.queryAwait
 import io.vertx.kotlin.ext.sql.querySingleWithParamsAwait
 import io.vertx.kotlin.ext.sql.queryWithParamsAwait
 import io.vertx.kotlin.ext.sql.updateWithParamsAwait
@@ -86,6 +87,37 @@ class UserService : Service {
         return UserAuth(user, auth, roles, perms)
     }
 
+    suspend fun getAllUser(): List<UserWithPermissionInfo> {
+        val result = database.queryAwait("""
+            SELECT "user".username,
+                   avatar,
+                   user_roles.role,
+                   perm
+            FROM "user"
+                     JOIN user_info ON "user".username = user_info.username
+                     LEFT JOIN user_roles ON "user".username = user_roles.username
+                     LEFT JOIN roles_perms rp on user_roles.role = rp.role;
+        """.trimIndent())
+        val map = mutableMapOf<String, UserWithPermissionInfo>()
+        result.rows.forEach {
+            val username = it.getString("username")
+            val avatar = it.getString("avatar")
+            val role = it.getString("role")
+            val perm = it.getString("perm")
+
+            val user = map.getOrPut(username) {
+                UserWithPermissionInfo(User(username, avatar), mutableListOf(), mutableListOf())
+            }
+            if (role != null && role !in user.roles) {
+                (user.roles as MutableList).add(role)
+            }
+            if (perm != null && perm !in user.permissions) {
+                (user.permissions as MutableList).add(perm)
+            }
+        }
+        return map.values.toList()
+    }
+
     suspend fun getUser(username: String): User {
         val userInfo = database.querySingleWithParamsAwait(
                 """SELECT * FROM user_info WHERE username = ?""",
@@ -120,7 +152,8 @@ class UserService : Service {
                 INSERT INTO user_roles (username, role) VALUES (?,?);
             """.trimIndent(), jsonArrayOf(username, role))
         } catch (e: PSQLException) {
-            if ((e.message ?: "").contains("重复键违反唯一约束")) {
+            if ((e.message ?: "").contains("重复键违反唯一约束")||
+                    (e.message ?: "").contains("unique constraint")) {
                 throw ServiceException("this user is already this role")
             } else {
                 throw e
@@ -132,7 +165,7 @@ class UserService : Service {
         val result = database.updateWithParamsAwait("""
                 DELETE FROM user_roles WHERE username = ? and role = ?;
             """.trimIndent(), jsonArrayOf(username, role))
-        if(result.updated==0){
+        if (result.updated == 0) {
             throw ServiceException("no such (user,role)")
         }
     }
