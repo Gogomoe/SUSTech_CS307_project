@@ -43,7 +43,10 @@ class TicketService : Service {
     }
 
     suspend fun putOrder(trainID: Int, user: UserAuth, passengerID: Int, seatType: Int, departStationID: Int, arriveStationID: Int): Int {
-        val passengerBelongToUser = if (user.isAuthorizedAwait("admin")) {
+        val passengerBelongToUser = if (
+                user.isAuthorizedAwait("admin") ||
+                user.isAuthorizedAwait("buy-ticket-for-other")
+        ) {
             true
         } else {
             passengerService.getAllPassengers(user.user.username).any {
@@ -73,12 +76,28 @@ class TicketService : Service {
                   AND tk.valid
                   AND NOT (sf2.depart_time + ta2.depart_date > st.arrive_time + ta.depart_date OR
                         st2.arrive_time + ta2.depart_date < sf.depart_time + ta.depart_date));
-        """.trimIndent(), jsonArrayOf(departStationID,arriveStationID,trainID,passengerID))
-        if(existent!=null){
+        """.trimIndent(), jsonArrayOf(departStationID, arriveStationID, trainID, passengerID))
+        if (existent != null) {
             throw ServiceException("Travel plan conflict")
         }
 
-        val trainTicket = getTrainTicketResult(trainID);
+        val trainTicket = getTrainTicketResult(trainID)
+
+        val trainNotDepart = if (
+                user.isAuthorizedAwait("admin") ||
+                user.isAuthorizedAwait("buy-ticket-late")
+        ) {
+            true
+        } else {
+            val departStation = trainTicket.trainLine.stations.find { it.station == departStationID }
+                    ?: throw ServiceException("no depart station in the train line")
+            departStation.departTime > LocalDateTime.now()
+        }
+
+        if (!trainNotDepart) {
+            throw ServiceException("permission denied, train have departed")
+        }
+
         val seatNum = trainTicket.generateTicket(departStationID, arriveStationID, seatType)
         val result = database.updateWithParamsAwait(
                 """
@@ -107,7 +126,10 @@ class TicketService : Service {
     suspend fun cancelOrder(user: UserAuth, ticketID: Int) {
         val ticket = getTicket(ticketID)
 
-        val ticketCreateByUser = if (user.isAuthorizedAwait("admin")) {
+        val ticketCreateByUser = if (
+                user.isAuthorizedAwait("admin") ||
+                user.isAuthorizedAwait("cancel-ticket-for-other")
+        ) {
             true
         } else {
             user.user.username == ticket.username
@@ -120,7 +142,10 @@ class TicketService : Service {
             throw ServiceException("the ticket has been cancelled")
         }
 
-        val trainNotDepart = if (user.isAuthorizedAwait("admin")) {
+        val trainNotDepart = if (
+                user.isAuthorizedAwait("admin") ||
+                user.isAuthorizedAwait("cancel-ticket-late")
+        ) {
             true
         } else {
             val timeTable = trainService.getTrainTimeTable(ticket.train)
