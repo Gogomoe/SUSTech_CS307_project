@@ -148,7 +148,7 @@ class TrainTicketResult(val train: Train, val trainLine: TrainLine, tickets: Lis
                 break
             }
             var R = L + 1
-            while (R < seat.size && !seat[L]) {
+            while (R < seat.size && !seat[R]) {
                 R++
             }
             for (i in L..R) {
@@ -170,7 +170,7 @@ class TrainTicketResult(val train: Train, val trainLine: TrainLine, tickets: Lis
                 break
             }
             var R = L + 1
-            while (R < seat.size && !seat[L]) {
+            while (R < seat.size && !seat[R]) {
                 R++
             }
             for (i in L..R) {
