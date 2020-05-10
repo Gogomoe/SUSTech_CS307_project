@@ -52,3 +52,7 @@ DELETE http://localhost:8080/api/user/user_1/role/admin
 
 GET http://localhost:8080/api/users
 
+### get all roles
+
+GET http://localhost:8080/api/roles
+

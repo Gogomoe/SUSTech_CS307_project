@@ -12,7 +12,7 @@ private typealias StationID = Int
 private typealias StationIndex = Int
 private typealias SeatType = Int
 
-class TrainTicketResult(val train: Train, trainLine: TrainLine, tickets: List<Ticket>) {
+class TrainTicketResult(val train: Train, val trainLine: TrainLine, tickets: List<Ticket>) {
 
 
     private val lock = ReentrantLock()

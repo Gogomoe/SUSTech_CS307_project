@@ -69,6 +69,13 @@ VALUES ('user',
 INSERT INTO user_info
 VALUES ('user', null);
 
+INSERT INTO roles_perms
+VALUES ('conductor', 'buy-ticket-for-other'),
+       ('attendant', 'buy-ticket-for-other'),
+       ('attendant', 'buy-ticket-late'),
+       ('after-sales', 'cancel-ticket-for-other'),
+       ('after-sales', 'cancel-ticket-late');
+
 CREATE TABLE IF NOT EXISTS station
 (
     station_id SERIAL      NOT NULL PRIMARY KEY,

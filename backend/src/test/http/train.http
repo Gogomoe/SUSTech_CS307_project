@@ -62,3 +62,17 @@ Content-Type: application/json
 
 DELETE http://localhost:8080/api/train/static/11602
 
+###
+
+POST http://localhost:8080/api/train
+Content-Type: application/json
+
+{
+  "static": 1234,
+  "date": "2020-12-31"
+}
+
+###
+
+DELETE http://localhost:8080/api/train/11283
+
