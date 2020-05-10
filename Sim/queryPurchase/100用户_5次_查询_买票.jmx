@@ -115,7 +115,7 @@
                 <connectTime>true</connectTime>
               </value>
             </objProp>
-            <stringProp name="filename">C:\Users\deity realm\Desktop\SUSTech_CS307_project\Sim\queryPurchase\query_guangzn_szb.csv</stringProp>
+            <stringProp name="filename"></stringProp>
           </ResultCollector>
           <hashTree/>
           <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="JSON提取train" enabled="true">
@@ -175,7 +175,7 @@
               <collectionProp name="Arguments.arguments">
                 <elementProp name="" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                  <stringProp name="Argument.value">{&quot;train&quot;:${train},&quot;seat&quot;:1,&quot;from&quot;:861,&quot;to&quot;:836,&quot;passenger&quot;:2}</stringProp>
+                  <stringProp name="Argument.value">{&quot;train&quot;:${train},&quot;seat&quot;:1,&quot;from&quot;:861,&quot;to&quot;:836,&quot;passenger&quot;:1}</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
                 </elementProp>
               </collectionProp>
@@ -230,12 +230,12 @@
                   <connectTime>true</connectTime>
                 </value>
               </objProp>
-              <stringProp name="filename">C:\Users\deity realm\Desktop\SUSTech_CS307_project\Sim\queryPurchase\puchase_guangzn_szb.csv</stringProp>
+              <stringProp name="filename">C:\Users\deity realm\Desktop\SUSTech_CS307_project\Sim\queryPurchase\purchase_gzn_szb_50.csv</stringProp>
               <stringProp name="RespTimeGraph.interval">20000</stringProp>
             </ResultCollector>
             <hashTree/>
             <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="察看结果树" enabled="true">
-              <boolProp name="ResultCollector.error_logging">false</boolProp>
+              <boolProp name="ResultCollector.error_logging">true</boolProp>
               <objProp>
                 <name>saveConfig</name>
                 <value class="SampleSaveConfiguration">
@@ -307,7 +307,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">C:\Users\deity realm\Desktop\SUSTech_CS307_project\Sim\queryPurchase\all.csv</stringProp>
+          <stringProp name="filename"></stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>

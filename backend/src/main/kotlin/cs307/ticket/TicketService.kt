@@ -79,7 +79,7 @@ class TicketService : Service {
                         st2.arrive_time + ta2.depart_date < sf.depart_time + ta.depart_date));
         """.trimIndent(), jsonArrayOf(departStationID, arriveStationID, trainID, passengerID))
         if (existent != null) {
-            throw ServiceException("Travel plan conflict")
+//            throw ServiceException("Travel plan conflict")
         }
 
         val trainTicket = getTrainTicketResult(trainID)

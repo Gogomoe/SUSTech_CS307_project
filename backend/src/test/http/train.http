@@ -1,5 +1,5 @@
 ### get tarin between
-GET http://localhost:8080/api/train/from/紫阳/to/襄阳/date/2020-05-10
+GET http://localhost:8080/api/train/from/广州南/to/深圳北/date/2020-05-12
 Accept: application/json
 
 ###
