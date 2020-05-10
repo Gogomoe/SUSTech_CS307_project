@@ -1,0 +1,189 @@
+<script src="https://cdn.bootcss.com/babel-polyfill/6.23.0/polyfill.min.js"></script>
+<script src="https://unpkg.com/frappe-charts@1.1.0"></script>
+<script src="http://libs.baidu.com/jquery/1.9.1/jquery.min.js"></script>
+<script src="../queryOnly/querySimData.js"></script>
+<script>
+    let chartLatencyTimeSeries = null;
+    let chartTps = null;
+    let chartLatencyMid = null;
+    let chartLatency90 = null;
+    window.onload = function () {
+        let cntLabels = ['cnt'];
+        for (let i = 1; i < sz_gz_100_5.elapsed.length; i++) {
+            cntLabels[i] = i;
+        }
+        chartLatencyTimeSeries = new frappe.Chart("#chart-latency-time-series", { // or DOM element
+            data: {
+                labels: cntLabels,
+                datasets: [{
+                    name: "sz to gz",
+                    chartType: 'line',
+                    values: sz_gz_100_5.elapsed
+                }, {
+                    name: "wh to gz",
+                    chartType: "line",
+                    values: wh_gz_100_5.elapsed
+                }, {
+                    name: "fz to gz",
+                    chartType: "line",
+                    values: fz_gz_100_5.elapsed
+                }],
+                yMarkers: [{label: "Latency (ms)", value: 5000, options: {labelPos: 'left'}}]
+            },
+            lineOptions: {
+                hideDots: 1,
+                heatline: 1
+            },
+            title: "The time series of latency when 100 concurrent",
+            type: 'line', // or 'bar', 'line', 'pie', 'percentage'
+            height: 600,
+            axisOptions: {
+                xIsSeries: 1,
+                yAxisMode: 'span',
+                xAxisMode: 'tick'
+            },
+            colors: ['light-blue', 'green', 'red', 'light-blue', 'grey'],
+
+            tooltipOptions: {
+                formatTooltipX: d => (d + '').toUpperCase(),
+                formatTooltipY: d => d + ' pts',
+            }
+        });
+
+        let diffConcurrentLabels = ['30 concurrent', '50', '100', '150'];
+
+        chartTps = new frappe.Chart("#chart-tps", { // or DOM element
+            data: {
+                labels: diffConcurrentLabels,
+                datasets: [{
+                    name: "sz to gz",
+                    chartType: 'bar',
+                    values: [sz_gz_30_5.tps, sz_gz_50_5.tps, sz_gz_100_5.tps, sz_gz_150_5.tps]
+                }, {
+                    name: "wh to gz",
+                    chartType: "bar",
+                    values: [wh_gz_30_5.tps, wh_gz_50_5.tps, wh_gz_100_5.tps, wh_gz_150_5.tps]
+                }, {
+                    name: "fz to gz",
+                    chartType: "bar",
+                    values: [fz_gz_30_5.tps, fz_gz_50_5.tps, fz_gz_100_5.tps, fz_gz_150_5.tps]
+                }],
+                yMarkers: [{label: "tps (/s)", value: 40, options: {labelPos: 'left'}}]
+            },
+            lineOptions: {
+                hideDots: 1
+            },
+            title: "The throughput rate when concurrent is 30, 50, 100 and 150",
+            type: 'bar', // or 'bar', 'line', 'pie', 'percentage'
+            height: 600,
+            axisOptions: {
+                xIsSeries: 0,
+                yAxisMode: 'span',
+                xAxisMode: 'tick'
+            },
+            colors: ['light-blue', 'green', 'red', 'light-blue', 'grey'],
+
+            tooltipOptions: {
+                formatTooltipX: d => (d + '').toUpperCase(),
+                formatTooltipY: d => d + ' pts',
+            }
+        });
+
+        chartLatencyMid = new frappe.Chart("#chart-latency-mid", { // or DOM element
+            data: {
+                labels: diffConcurrentLabels,
+                datasets: [{
+                    name: "sz to gz",
+                    chartType: 'line',
+                    values: [sz_gz_30_5.mid, sz_gz_50_5.mid, sz_gz_100_5.mid, sz_gz_150_5.mid]
+                }, {
+                    name: "wh to gz",
+                    chartType: 'line',
+                    values: [wh_gz_30_5.mid, wh_gz_50_5.mid, wh_gz_100_5.mid, wh_gz_150_5.mid]
+                }, {
+                    name: "fz to gz",
+                    chartType: 'line',
+                    values: [fz_gz_30_5.mid, fz_gz_50_5.mid, fz_gz_100_5.mid, fz_gz_150_5.mid]
+                }],
+                yMarkers: [{label: "latency (ms)", value: 10000, options: {labelPos: 'left'}}]
+            },
+            lineOptions: {
+                hideDots: 0
+            },
+            title: "The median of latency when concurrent is 30, 50, 100 and 150",
+            type: 'axis-mixed', // or 'bar', 'line', 'pie', 'percentage'
+            height: 600,
+            axisOptions: {
+                xIsSeries: 0,
+                yAxisMode: 'span',
+                xAxisMode: 'tick'
+            },
+            colors: ['light-blue', 'green', 'red', 'light-blue', 'green', 'red'],
+
+            tooltipOptions: {
+                formatTooltipX: d => (d + '').toUpperCase(),
+                formatTooltipY: d => d + ' pts',
+            }
+        });
+
+        chartLatency90 = new frappe.Chart("#chart-latency-90", { // or DOM element
+            data: {
+                labels: diffConcurrentLabels,
+                datasets: [{
+                    name: "sz to gz",
+                    chartType: 'line',
+                    values: [sz_gz_30_5.quantile_90, sz_gz_50_5.quantile_90, sz_gz_100_5.quantile_90, sz_gz_150_5.quantile_90]
+                }, {
+                    name: "wh to gz",
+                    chartType: 'line',
+                    values: [wh_gz_30_5.quantile_90, wh_gz_50_5.quantile_90, wh_gz_100_5.quantile_90, wh_gz_150_5.quantile_90]
+                }, {
+                    name: "fz to gz",
+                    chartType: 'line',
+                    values: [fz_gz_30_5.quantile_90, fz_gz_50_5.quantile_90, fz_gz_100_5.quantile_90, fz_gz_150_5.quantile_90]
+                }],
+                yMarkers: [{label: "latency (ms)", value: 15000, options: {labelPos: 'left'}}]
+            },
+            lineOptions: {
+                hideDots: 0,
+                regionFill: 1
+            },
+            title: "The 90% quantile of latency when concurrent is 30, 50, 100 and 150",
+            type: 'axis-mixed', // or 'bar', 'line', 'pie', 'percentage'
+            height: 600,
+            axisOptions: {
+                xIsSeries: 0,
+                yAxisMode: 'span',
+                xAxisMode: 'tick'
+            },
+            colors: ['light-blue', 'green', 'red', 'light-blue', 'green', 'red'],
+
+            tooltipOptions: {
+                formatTooltipX: d => (d + '').toUpperCase(),
+                formatTooltipY: d => d + ' pts',
+            }
+        });
+
+
+        // chart.export()
+        $('.title').css({fontSize: '20px', fill: 'rgb(0,0,0)'})
+        $('.chart-label').css({fontSize: '12px'})
+    };
+
+    function myClick() {
+        chartTps.export()
+        chartLatencyTimeSeries.export()
+        chartLatencyMid.export()
+        chartLatency90.export()
+    }
+</script>
+<body>
+<div id="chart-latency-time-series"></div>
+<br>
+<div id="chart-tps"></div>
+<br>
+<div id="chart-latency-mid"></div>
+<br>
+<div id="chart-latency-90"></div>
+<button id="ex" onclick="myClick()"> Export</button>
+</body>

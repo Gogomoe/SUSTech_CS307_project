@@ -46,7 +46,7 @@ public class QueryOnlySimulation {
         query.mid = elapse[elapse.length / 2];
         query.quantile_90 = elapse[9 * elapse.length / 10];
         query.max = elapse[elapse.length - 1];
-        query.tps = String.format("%.2f",1.0 * Arrays.stream(query.startTime).max().getAsLong() / elapse.length);
+        query.tps = String.format("%.2f",1.0 * elapse.length/Arrays.stream(query.startTime).max().getAsLong()*1000);
         return query;
     }
 
