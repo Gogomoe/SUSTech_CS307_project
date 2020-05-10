@@ -18,6 +18,7 @@ import io.vertx.kotlin.ext.sql.updateWithParamsAwait
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.postgresql.util.PSQLException
 import java.time.LocalDateTime
 
 class TicketService : Service {
@@ -99,27 +100,32 @@ class TicketService : Service {
         }
 
         val seatNum = trainTicket.generateTicket(departStationID, arriveStationID, seatType)
-        val result = database.updateWithParamsAwait(
-                """
+        try {
+            val result = database.updateWithParamsAwait(
+                    """
                 INSERT INTO ticket_active
                 (ticket_id, train_id, depart_station, arrive_station, seat_id, seat_num, passenger_id, username)
                 VALUES (nextval('ticket_sequence'), ?, ?, ?, ?, ?, ?, ?);
             """.trimIndent(),
-                jsonArrayOf(
-                        trainID,
-                        departStationID,
-                        arriveStationID,
-                        seatType,
-                        seatNum,
-                        passengerID,
-                        user.user.username
-                )
-        )
-        if (result.updated == 1) {
-            return result.keys.getInteger(0)
-        } else {
+                    jsonArrayOf(
+                            trainID,
+                            departStationID,
+                            arriveStationID,
+                            seatType,
+                            seatNum,
+                            passengerID,
+                            user.user.username
+                    )
+            )
+            if (result.updated == 1) {
+                return result.keys.getInteger(0)
+            } else {
+                trainTicket.retrieveTicket(departStationID, arriveStationID, seatType, seatNum)
+                throw ServiceException("generate ticket failed")
+            }
+        }catch (e:PSQLException){
             trainTicket.retrieveTicket(departStationID, arriveStationID, seatType, seatNum)
-            throw ServiceException("generate ticket failed")
+            throw ServiceException(e.message)
         }
     }
 

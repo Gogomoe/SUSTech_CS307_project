@@ -2,11 +2,11 @@ POST http://localhost:8080/api/ticket
 Content-Type: application/json
 
 {
-  "train": 10159,
+  "train": 6446,
   "seat": 1,
-  "from": 836,
-  "to": 42,
-  "passenger": 2
+  "from": 2524,
+  "to": 2263,
+  "passenger": 4
 }
 
 ###
