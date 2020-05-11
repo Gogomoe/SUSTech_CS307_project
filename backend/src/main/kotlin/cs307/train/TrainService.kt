@@ -198,6 +198,135 @@ class TrainService : Service {
         }
     }
 
+    suspend fun searchTransshipTrainBetween(from: String, to: String, date: LocalDate): List<TransshipTrainBetween> {
+        if (from.trim().length < 2 || to.trim().length < 2) {
+            throw ServiceException("the name of station or city is too short, it must greater than 2")
+        }
+        
+        val result = database.queryWithParamsAwait("""
+                SELECT train_1.ts_id                              tr1_tb_tr_ts_id,
+                train_1.ts_code                            tr1_tb_tr_ts_code,
+                train_1.ts_type                            tr1_tb_tr_ts_type,
+                train_1.ts_depart_station                  tr1_tb_tr_ts_depart_station,
+                train_1.ts_arrive_station                  tr1_tb_tr_ts_arrive_station,
+                EXTRACT(epoch FROM train_1.ts_depart_time) tr1_tb_tr_ts_depart_time,
+                EXTRACT(epoch FROM train_1.ts_arrive_time) tr1_tb_tr_ts_arrive_time,
+                train_1.tr_id                              tr1_tb_tr_id,
+                train_1.depart_date                        tr1_tb_tr_depart_date,
+                train_1.station_id                         tr1_tb_depart_st_id,
+                train_1.s_name                             tr1_tb_depart_st_name,
+                train_1.city                               tr1_tb_depart_st_city,
+                train_1.s_code                             tr1_tb_depart_st_code,
+                stations.station_id                        tr1_tb_arrive_st_id,
+                stations.s_name                            tr1_tb_arrive_st_name,
+                stations.city                              tr1_tb_arrive_st_city,
+                stations.s_code                            tr1_tb_arrive_st_code,
+                train_1.depart_time                        tr1_tb_depart_time,
+                stations.arrive_time                       tr1_tb_arrive_time,
+                
+                train_2.ts_id                              tr2_tb_tr_ts_id,
+                train_2.ts_code                            tr2_tb_tr_ts_code,
+                train_2.ts_type                            tr2_tb_tr_ts_type,
+                train_2.ts_depart_station                  tr2_tb_tr_ts_depart_station,
+                train_2.ts_arrive_station                  tr2_tb_tr_ts_arrive_station,
+                EXTRACT(epoch FROM train_2.ts_depart_time) tr2_tb_tr_ts_depart_time,
+                EXTRACT(epoch FROM train_2.ts_arrive_time) tr2_tb_tr_ts_arrive_time,
+                train_2.tr_id                              tr2_tb_tr_id,
+                train_2.depart_date                        tr2_tb_tr_depart_date,
+                train_2.station_id                         tr2_tb_depart_st_id,
+                stations.s_name                            tr2_tb_depart_st_name,
+                stations.city                              tr2_tb_depart_st_city,
+                stations.s_code                            tr2_tb_depart_st_code,
+                t.station_id                               tr2_tb_arrive_st_id,
+                t.s_name                                   tr2_tb_arrive_st_name,
+                t.city                                     tr2_tb_arrive_st_city,
+                t.s_code                                   tr2_tb_arrive_st_code,
+                train_2.depart_time                        tr2_tb_depart_time,
+                t.arrive_time                              tr2_tb_arrive_time
+            FROM (SELECT ts.train_static_id               ts_id,
+                 ts.code                          ts_code,
+                 ts.type                          ts_type,
+                 ts.depart_station                ts_depart_station,
+                 ts.arrive_station                ts_arrive_station,
+                 ts.depart_time                   ts_depart_time,
+                 ts.arrive_time                   ts_arrive_time,
+                 trs.depart_time + ta.depart_date depart_time,
+                 ta.depart_date                   depart_date,
+                 s.station_id                     station_id,
+                 s.name                           s_name,
+                 s.city                           city,
+                 s.code                           s_code,
+                 ta.train_id                      tr_id
+                FROM train_station trs
+                   JOIN station s ON s.station_id = trs.station_id
+                   JOIN train_static ts ON ts.train_static_id = trs.train_static_id
+                   JOIN train_active ta ON ts.train_static_id = ta.train_static
+              WHERE (s.name like ?
+                  OR s.city like ?)
+                AND trs.depart_time + ta.depart_date BETWEEN ?::DATE AND (?::DATE + '1d'::INTERVAL)
+             ) train_1
+         JOIN (SELECT trs.arrive_time + ta.depart_date arrive_time,
+                      trs.depart_time + ta.depart_date depart_time,
+                      s.station_id                     station_id,
+                      s.name                           s_name,
+                      s.city                           city,
+                      s.code                           s_code,
+                      ta.train_id                      tr_id
+                FROM train_station trs
+                        JOIN train_static ts ON ts.train_static_id = trs.train_static_id
+                        JOIN train_active ta ON ta.train_static = ts.train_static_id
+                        JOIN station s ON trs.station_id = s.station_id
+            ) stations ON train_1.tr_id = stations.tr_id AND stations.depart_time > train_1.depart_time
+         JOIN (SELECT ts.train_static_id               ts_id,
+                      ts.code                          ts_code,
+                      ts.type                          ts_type,
+                      ts.depart_station                ts_depart_station,
+                      ts.arrive_station                ts_arrive_station,
+                      ts.depart_time                   ts_depart_time,
+                      ts.arrive_time                   ts_arrive_time,
+                      trs.depart_time + ta.depart_date depart_time,
+                      ta.depart_date                   depart_date,
+                      trs.station_id                   station_id,
+                      ta.train_id                      tr_id
+               FROM train_station trs
+                        JOIN train_static ts ON ts.train_static_id = trs.train_static_id
+                        JOIN train_active ta ON ts.train_static_id = ta.train_static AND 
+                                    ta.depart_date BETWEEN ?::DATE AND (?::DATE + '3d'::INTERVAL)
+            ) train_2 ON stations.station_id = train_2.station_id
+                        AND stations.tr_id <> train_2.tr_id
+                     AND train_2.depart_time > (stations.arrive_time + '15m'::interval)
+         JOIN (SELECT trs.arrive_time + ta.depart_date arrive_time,
+                      trs.depart_time + ta.depart_date depart_time,
+                      s.station_id                     station_id,
+                      s.name                           s_name,
+                      s.city                           city,
+                      s.code                           s_code,
+                      ta.train_id                      tr_id
+               FROM train_station trs
+                    JOIN station s ON trs.station_id = s.station_id
+                    JOIN train_static ts ON trs.train_static_id = ts.train_static_id
+                    JOIN train_active ta ON ts.train_static_id = ta.train_static
+               WHERE s.name like ?
+                  OR s.city like ?
+            ) t ON t.tr_id = train_2.tr_id
+            AND t.depart_time > train_2.depart_time
+            ORDER BY t.arrive_time - train_1.depart_time
+            LIMIT 10;
+        """.trimIndent(), jsonArrayOf("%${from}%", "%${from}%", date.format(), date.format(), date.format(), date.format(), "%${to}%", "%${to}%"))
+
+        return result.rows.map {
+            it.toTransshipTrainBetween()
+        }.onEach {
+            var trainTicketResult = tickets.getTrainTicketResult(it.firstTrainBetween.train.id)
+            var ticketInfo = trainTicketResult.ticketInfo(it.firstTrainBetween.departStation.id, it.firstTrainBetween.arriveStation.id)
+            it.firstTrainBetween.seat.putAll(ticketInfo)
+
+            trainTicketResult = tickets.getTrainTicketResult(it.secondTrainBetween.train.id)
+            ticketInfo = trainTicketResult.ticketInfo(it.secondTrainBetween.departStation.id, it.secondTrainBetween.arriveStation.id)
+            it.secondTrainBetween.seat.putAll(ticketInfo)
+        }
+    }
+
     suspend fun addTrain(static: Int, date: LocalDate): Int {
         val count = database.querySingleWithParamsAwait("""
             SELECT (SELECT COUNT(*) FROM train_active WHERE train_static = ? AND depart_date = ?) +

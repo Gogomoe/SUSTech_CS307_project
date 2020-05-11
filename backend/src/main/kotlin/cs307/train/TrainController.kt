@@ -22,6 +22,8 @@ class TrainController(registry: ServiceRegistry) : CoroutineController() {
 
         router.post("/train").coroutineHandler(::addTrain)
         router.delete("/train/:train").coroutineHandler(::deleteTrain)
+
+        router.get("/train/transship/from/:from/to/:to/date/:date").coroutineHandler(::getTransshipTrainBetween)
     }
 
     suspend fun getActiveTrainBetween(context: RoutingContext) {
@@ -93,6 +95,26 @@ class TrainController(registry: ServiceRegistry) : CoroutineController() {
         context.success()
     }
 
+    suspend fun getTransshipTrainBetween(context: RoutingContext){
+        val from = context.request().getParam("from")
+        val to = context.request().getParam("to")
+        val datePara = context.request().getParam("date")
+        val date = try {
+            datePara.toLocalDate()
+        } catch (e: Exception) {
+            throw ServiceException(e)
+        }
+        val result = service.searchTransshipTrainBetween(from,to,date)
+
+        context.success(
+                jsonObjectOf(
+                        "transships" to JsonArray(result.map {
+                            it.toJson()
+                        })
+                )
+        )
+
+    }
 }
 
 

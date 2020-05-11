@@ -61,5 +61,22 @@ fun TrainBetween.toJson(): JsonObject {
     )
 }
 
+data class TransshipTrainBetween(
+        val firstTrainBetween: TrainBetween,
+        val secondTrainBetween: TrainBetween
+)
 
+fun JsonObject.toTransshipTrainBetween(prefix: String = ""): TransshipTrainBetween {
+    return TransshipTrainBetween(
+            this.toTrainBetween("${prefix}tr1_"),
+            this.toTrainBetween("${prefix}tr2_")
+    )
+}
+
+fun TransshipTrainBetween.toJson(): JsonObject{
+    return jsonObjectOf(
+            "first_train" to firstTrainBetween.toJson(),
+            "second_train" to secondTrainBetween.toJson()
+    )
+}
 
