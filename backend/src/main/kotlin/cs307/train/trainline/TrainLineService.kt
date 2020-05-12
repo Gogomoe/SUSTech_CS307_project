@@ -151,14 +151,23 @@ class TrainLineService : Service {
                 """.trimIndent(), jsonArrayOf(staticID, seatType, count))
             }
 
-            stations.forEach {
+            stations.forEach { station ->
                 connection.updateWithParamsAwait("""
                     INSERT INTO train_station(train_static_id, station_id, arrive_time, depart_time)
                     VALUES (?, ?, ?::INTERVAL(0), ?::INTERVAL(0));
                 """.trimIndent(), jsonArrayOf(
-                        staticID, it.station,
-                        "${it.arriveTime.toSeconds()}s", "${it.departTime.toSeconds()}s"
+                        staticID, station.station,
+                        "${station.arriveTime.toSeconds()}s", "${station.departTime.toSeconds()}s"
                 ))
+                station.prices.forEach { (seatType, price) ->
+                    connection.updateWithParamsAwait("""
+                    INSERT INTO train_station_price (train_static_id, station_id, seat_id, remain_price)
+                    values (?, ?, ?, ?);
+                """.trimIndent(), jsonArrayOf(
+                            staticID, station.station,
+                            seatType, price
+                    ))
+                }
             }
             staticID
         }
@@ -180,6 +189,11 @@ class TrainLineService : Service {
             connection.updateWithParamsAwait("""
                 DELETE
                 FROM train_station
+                WHERE train_static_id = ?;
+            """.trimIndent(), jsonArrayOf(staticID))
+            connection.updateWithParamsAwait("""
+                DELETE
+                FROM train_station_price
                 WHERE train_static_id = ?;
             """.trimIndent(), jsonArrayOf(staticID))
             connection.updateWithParamsAwait("""
