@@ -2,6 +2,7 @@ package cs307.web
 
 import cs307.api.APIServerVerticle
 import io.vertx.core.DeploymentOptions
+import io.vertx.core.buffer.Buffer
 import io.vertx.ext.web.Router
 import io.vertx.kotlin.core.deployVerticleAwait
 import io.vertx.kotlin.core.http.listenAwait
@@ -20,6 +21,14 @@ class WebServerVerticle : CoroutineVerticle() {
             val api = APIServerVerticle()
             vertx.deployVerticleAwait(api, DeploymentOptions().setConfig(config))
             router.mountSubRouter("/api", api.router())
+        }
+
+        val defaultAvatar = WebServerVerticle::class.java.classLoader
+                .getResourceAsStream("default.jpg")!!.readAllBytes()
+
+        router.get("/avatar/default.jpg").handler { context ->
+            context.response().putHeader("Content-Type", "image/jpeg")
+            context.end(Buffer.buffer(defaultAvatar))
         }
 
         val webConfig = config.getJsonObject("webserver_config")
