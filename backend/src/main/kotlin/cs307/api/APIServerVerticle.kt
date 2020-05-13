@@ -19,6 +19,9 @@ import cs307.train.trainline.TrainLineController
 import cs307.train.trainline.TrainLineService
 import cs307.user.UserController
 import cs307.user.UserService
+import io.vertx.core.http.HttpMethod
+import io.vertx.core.impl.logging.Logger
+import io.vertx.core.impl.logging.LoggerFactory
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.handler.BodyHandler
 import io.vertx.ext.web.handler.CorsHandler
@@ -34,6 +37,8 @@ class APIServerVerticle : CoroutineVerticle() {
     lateinit var services: List<Pair<Class<out Service>, Service>>
 
     lateinit var router: Router
+
+    private val log: Logger = LoggerFactory.getLogger(APIServerVerticle::class.java)
 
     override suspend fun start() = coroutineScope {
 
@@ -59,14 +64,19 @@ class APIServerVerticle : CoroutineVerticle() {
 
         router = Router.router(vertx)
 
-        config.getJsonObject("webserver_config").getJsonArray("cors_origin").forEach {
-            it as String
+        config.getJsonObject("webserver_config").getString("cors_origin")?.let {
             router.route().handler(CorsHandler.create(it)
                     .allowCredentials(true)
                     .allowedHeader("Access-Control-Allow-Origin")
                     .allowedHeader("Access-Control-Allow-Credentials")
+                    .allowedMethod(HttpMethod.GET)
+                    .allowedMethod(HttpMethod.POST)
+                    .allowedMethod(HttpMethod.HEAD)
+                    .allowedMethod(HttpMethod.OPTIONS)
+                    .allowedMethod(HttpMethod.DELETE)
             )
         }
+
 
         router.route().handler(BodyHandler.create())
         router.route().handler(
