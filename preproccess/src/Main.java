@@ -5,7 +5,10 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Objects;
 
 public class Main {
     static PrintWriter pw;
@@ -80,15 +83,17 @@ public class Main {
                 return;
             //抛弃环线
 
+            var hasSeat = false;
             for (int i=1;i<=4;i++){
                 if(t.stations.get(0).prices[i]==-1) continue;
+                hasSeat = true;
                 for(int j=1;j<t.stations.size();j++){
                     if(t.stations.get(j).prices[i]>t.stations.get(j-1).prices[i]){
-                        return;
+                        return;//价格<0就不写入
                     }
                 }
             }
-            //价格<0就不写入
+            if(!hasSeat) return;//无座位车不写
 
             var state = i_train_static.replace("A0", "" + t.ID);
             state = state.replace("A1", t.mark);
