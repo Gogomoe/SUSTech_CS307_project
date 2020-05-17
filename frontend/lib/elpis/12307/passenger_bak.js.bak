@@ -1,0 +1,192 @@
+_12307.passenger = function (api_data, cb_on_select) {
+
+    var dhxWindow = new dhx.Window({
+        title: "选择同行人",
+        modal: false,
+        header: true,
+        footer: true,
+        closable: true,
+        resizable: true,
+        movable: true,
+        width: 600,
+        height: 400
+    });
+
+    var template = function (item) {
+        var template = "<div class='list_item'>";
+        template += "<div class='item_name'>" + item.passenger_name + "</div>";
+        template += "<div class='item_categories'>" + item.phone + "," + item.id_number + "</div>";
+        template += "</div>";
+        return template;
+    }
+
+    var list = new dhx.List("list", {
+        multiselection: true,
+        css: "dhx_widget--bordered",
+        template: template,
+        keyNavigation: true,
+        itemHeight: 64,
+    });
+
+    var parse_api_data = function(api_data) {
+        var passengers = api_data["passengers"];
+        for (i = 0; i < passengers.length; ++i) {
+            passengers[i]["id"] = passengers[i]["id"];
+        }
+        list.data.parse(passengers);
+    }
+
+    var reload = function() {
+        dhxWindow.hide();
+        _12307.api.get_all_passenger(function(data) {
+            _12307.passenger(data);
+        }, _elpis.alert.__cb_show_err_msg);
+    }
+
+    this.__init = function (api_data) {
+
+        dhxWindow.header.data.add({
+            type: "button",
+            view: "flat",
+            size: "medium",
+            color: "primary",
+            value: "添加同行人信息",
+            id: "add",
+        }, 2);
+
+        dhxWindow.header.data.add({
+            type: "button",
+            view: "flat",
+            size: "medium",
+            color: "primary",
+            value: "删除同行人信息",
+            id: "remove",
+            disabled: true
+        }, 2);
+
+        dhxWindow.footer.data.add({
+            type: "spacer"
+        });
+
+        dhxWindow.footer.data.add({
+            type: "button",
+            view: "flat",
+            size: "medium",
+            color: "primary",
+            value: "确认",
+            id: "ok",
+        });
+
+        parse_api_data(api_data);
+
+        // dhxWindow.header.data.add({ icon: "mdi mdi-fullscreen", id: "fullscreen" }, 2);
+        dhxWindow.header.events.on("click", function (id) {
+            console.log(id);
+            if (id == "remove") {
+                var selected_items = list.selection.getItem();
+                console.log(selected_items);
+                var remove_list = [];
+                for(i=0; i<selected_items.length; ++i) {
+                    remove_list.push(selected_items[i]["passenger_name"]);
+                }
+                _elpis.alert.__show_confirm("警告", "是否确认删除同行人 " + JSON.stringify(remove_list), function(confirm) {
+                    if(confirm) {
+                        for(i=0; i<selected_items.length; ++i) {
+                            _12307.api.remove_passenger(reload, _elpis.alert.__cb_show_err_msg);
+                        }
+                    }
+                });
+            } else if (id == "add") {
+                _12307.passenger_add(reload);
+            }
+        });
+
+        dhxWindow.footer.events.on("click", function (id) {
+            dhxWindow.hide();
+        });
+
+        list.events.on("click", function (id) {
+            var selected_items = list.selection.getItem();
+            if (selected_items) dhxWindow.header.data.update("remove", { disabled: false });
+            else dhxWindow.header.data.update("remove", { disabled: true });
+            if(cb_on_select) cb_on_select(selected_items);
+        });
+
+        dhxWindow.show();
+        dhxWindow.attach(list);
+    }
+
+    this.__init(api_data);
+}
+
+_12307.passenger_add = function(cb_on_success) {
+    var dhxWindow = new dhx.Window({
+        title: "添加同行人信息",
+        modal: true,
+        footer: false,
+        closable: true,
+        resizable: true,
+        movable: true,
+        width: 320,
+        height: 400
+    });
+
+    var form = new dhx.Form(null, {
+        css: "dhx_widget--bordered",
+        rows: [
+            {
+                type: "input",
+                gravity: false,
+                label: "同行人姓名",
+                icon: "",
+                placeholder: "请输入姓名",
+                name: "passenger_name",
+                required: true
+            },
+            {
+                type: "input",
+                gravity: false,
+                label: "同行人身份证号",
+                icon: "",
+                placeholder: "请输入有效身份证号",
+                name: "id_number",
+                required: true
+            },
+            {
+                type: "input",
+                gravity: false,
+                label: "同行人手机号码",
+                icon: "",
+                placeholder: "请输入手机号码",
+                name: "phone",
+                required: true
+            },
+            {
+                gravity: true,
+                type: "button",
+                value: "添加",
+                size: "medium",
+                view: "flat",
+                color: "primary",
+                id: "add",
+                name: "add",
+                full: true,
+            }
+        ]
+    });
+
+    this.__init = function () {
+
+        form.events.on("ButtonClick", function(id, e) {
+            _12307.api.add_passenger(form.getValue(), function(data) {
+                dhxWindow.hide();
+                if(cb_on_success) cb_on_success(data);
+            }, _elpis.alert.__cb_show_err_msg);
+        });
+
+        dhxWindow.attach(form);
+        dhxWindow.show();
+    }
+
+    this.__init();
+}
