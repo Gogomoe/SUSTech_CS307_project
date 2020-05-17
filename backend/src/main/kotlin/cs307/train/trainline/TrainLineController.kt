@@ -21,7 +21,7 @@ class TrainLineController(registry: ServiceRegistry) : CoroutineController() {
 
     suspend fun getTrainLineStatic(context: RoutingContext) {
         val static = context.request().getParam("static").toInt()
-        val result = service.getTrainLineStatic(static)
+        val result = service.getTrainLineStaticInfo(static)
         context.success(jsonObject = jsonObjectOf(
                 "trainline" to result.toJson()
         ))

@@ -6,6 +6,7 @@ import cs307.ServiceRegistry
 import cs307.database.DatabaseService
 import cs307.format.getDuration
 import cs307.format.plusTime
+import cs307.train.Station
 import cs307.train.Train
 import cs307.train.TrainService
 import io.vertx.ext.jdbc.JDBCClient
@@ -68,6 +69,61 @@ class TrainLineService : Service {
         }
 
         return TrainLineStatic(static, seatCount, stations)
+    }
+
+    suspend fun getTrainLineStaticInfo(static: Int): TrainLineStaticInfo {
+
+        val seatCount = database.queryWithParamsAwait("""
+             SELECT seat_id, count
+             FROM train_seat
+             WHERE train_static_id = ?;
+        """.trimIndent(), jsonArrayOf(static)
+        ).rows.map { it.getInteger("seat_id") to it.getInteger("count") }.toMap()
+
+        val stationsRows = database.queryWithParamsAwait("""
+            SELECT s.station_id,
+                   s.name,
+                   s.city,
+                   s.code,
+                   tsp.seat_id,
+                   tsp.remain_price,
+                   EXTRACT(epoch FROM ts.arrive_time) arrive_time,
+                   EXTRACT(epoch FROM ts.depart_time) depart_time
+            FROM train_station_price tsp
+                     LEFT OUTER JOIN train_station ts ON tsp.station_id = ts.station_id
+                     JOIN station s on ts.station_id = s.station_id
+                AND tsp.train_static_id = ts.train_static_id
+            WHERE ts.train_static_id = ?
+            ORDER BY ts.arrive_time;
+        """.trimIndent(), jsonArrayOf(static)).rows
+
+        val stations = mutableListOf<TrainLineStaticStationInfo>()
+        stationsRows.forEach {
+            val seatType = it.getInteger("seat_id")
+            val price = it.getInteger("remain_price")
+            val arriveTime = it.getDuration("arrive_time")
+            val departTime = it.getDuration("depart_time")
+
+            val station = it.getInteger("station_id")
+            val name = it.getString("name")
+            val city = it.getString("city")
+            val code = it.getString("code")
+
+            if (stations.isNotEmpty() && stations.last().station.id == station) {
+                (stations.last().prices as MutableMap)[seatType] = price
+            } else {
+                stations.add(
+                        TrainLineStaticStationInfo(
+                                Station(station, name, city, code),
+                                arriveTime,
+                                departTime,
+                                mutableMapOf(seatType to price)
+                        )
+                )
+            }
+        }
+
+        return TrainLineStaticInfo(trainService.getTrainStatic(static), seatCount, stations)
     }
 
     suspend fun getTrainLine(train: Train): TrainLine {
