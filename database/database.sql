@@ -1,3 +1,7 @@
+DROP VIEW IF EXISTS user_all;
+
+DROP TRIGGER user_role_trigger ON user_roles;
+
 DROP TABLE IF EXISTS
     "user",user_roles,roles_perms,user_info,
     station, train_static,
@@ -181,3 +185,28 @@ CREATE TABLE IF NOT EXISTS ticket_active
     create_time    TIMESTAMP    NOT NULL DEFAULT NOW(),
     update_time    TIMESTAMP    NOT NULL DEFAULT NOW()
 );
+
+
+CREATE OR REPLACE VIEW user_all AS
+SELECT u.*, ui.avatar
+FROM "user" u
+         JOIN user_info ui on u.username = ui.username;
+
+CREATE OR REPLACE FUNCTION user_role_trigger_fun() RETURNS TRIGGER AS
+$$
+BEGIN
+    IF (SELECT count(*) FROM roles_perms WHERE user_roles.role = NEW.role) = 0 THEN
+        raise 'role not exist';
+    END IF;
+
+    RETURN NEW;
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER user_role_trigger
+    BEFORE INSERT
+    ON user_roles
+    FOR EACH ROW
+EXECUTE PROCEDURE user_role_trigger_fun();
