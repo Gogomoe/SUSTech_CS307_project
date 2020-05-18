@@ -157,7 +157,7 @@ class TicketService : Service {
             val timeTable = trainService.getTrainTimeTable(ticket.train)
             timeTable.station
                     .find { it.station == ticket.departStation }!!
-                    .departTime < LocalDateTime.now()
+                    .departTime > LocalDateTime.now()
         }
 
         if (!trainNotDepart) {
