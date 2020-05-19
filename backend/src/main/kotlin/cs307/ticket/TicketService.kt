@@ -17,6 +17,8 @@ import io.vertx.kotlin.ext.sql.queryWithParamsAwait
 import io.vertx.kotlin.ext.sql.updateWithParamsAwait
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.postgresql.util.PSQLException
 import java.time.LocalDateTime
@@ -33,6 +35,8 @@ class TicketService : Service {
 
     private lateinit var scope: CoroutineScope
 
+    private lateinit var mutex: Mutex
+
     override suspend fun start(registry: ServiceRegistry) {
         store = registry[MemoryService::class.java]
         database = registry[DatabaseService::class.java].client()
@@ -41,6 +45,7 @@ class TicketService : Service {
         trainLineService = registry[TrainLineService::class.java]
         vertx = registry.vertx()
         scope = CoroutineScope(Dispatchers.Default)
+        mutex = Mutex()
     }
 
     suspend fun putOrder(trainID: Int, user: UserAuth, passengerID: Int, seatType: Int, departStationID: Int, arriveStationID: Int): Int {
@@ -123,7 +128,7 @@ class TicketService : Service {
                 trainTicket.retrieveTicket(departStationID, arriveStationID, seatType, seatNum)
                 throw ServiceException("generate ticket failed")
             }
-        }catch (e:PSQLException){
+        } catch (e: PSQLException) {
             trainTicket.retrieveTicket(departStationID, arriveStationID, seatType, seatNum)
             throw ServiceException(e.message)
         }
@@ -353,7 +358,7 @@ class TicketService : Service {
 
             val trainTicketResult = TrainTicketResult(train, trainLine, tickets)
 
-            synchronized(store) {
+            mutex.withLock {
                 if (storeKey in store) {
                     store.get(storeKey)
                 } else {

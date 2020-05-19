@@ -4,9 +4,10 @@ import cs307.ServiceException
 import cs307.train.SeatPriceCount
 import cs307.train.Train
 import cs307.train.trainline.TrainLine
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
 
 private typealias StationID = Int
 private typealias StationIndex = Int
@@ -15,7 +16,7 @@ private typealias SeatType = Int
 class TrainTicketResult(val train: Train, val trainLine: TrainLine, tickets: List<Ticket>) {
 
 
-    private val lock = ReentrantLock()
+    private val lock = Mutex()
 
     private val seatCount: Map<SeatType, Int>
 
@@ -74,14 +75,14 @@ class TrainTicketResult(val train: Train, val trainLine: TrainLine, tickets: Lis
         }
     }
 
-    fun generateTicket(departStationID: StationID, arriveStationID: StationID, seatType: SeatType): Int {
+    suspend fun generateTicket(departStationID: StationID, arriveStationID: StationID, seatType: SeatType): Int {
         if (departStationID !in stationToIndex || arriveStationID !in stationToIndex) {
             throw ServiceException("station not in the train line")
         }
         if (seatType !in seatCount.keys) {
             throw ServiceException("seat type not in the train")
         }
-        lock.tryLock(3000) {
+        return lock.tryLock(3000) {
             val departIndex = stationToIndex[departStationID]!!
             val arriveIndex = stationToIndex[arriveStationID]!!
             val seatsOfTypes = seats[seatType]!!
@@ -106,13 +107,13 @@ class TrainTicketResult(val train: Train, val trainLine: TrainLine, tickets: Lis
                 }
                 releaseTickets(seatType, seat)
 
-                return seatNum
+                return@tryLock seatNum
             }
             throw ServiceException("no tickets remain")
         }
     }
 
-    fun retrieveTicket(departStationID: StationID, arriveStationID: StationID, seatType: SeatType, seatNum: Int) {
+    suspend fun retrieveTicket(departStationID: StationID, arriveStationID: StationID, seatType: SeatType, seatNum: Int) {
         lock.tryLock(5000) {
             val departIndex = stationToIndex[departStationID]!!
             val arriveIndex = stationToIndex[arriveStationID]!!
@@ -182,17 +183,15 @@ class TrainTicketResult(val train: Train, val trainLine: TrainLine, tickets: Lis
         }
     }
 
-    private inline fun <T> Lock.tryLock(mills: Int, action: () -> T): T {
-        if (tryLock(mills.toLong(), TimeUnit.MILLISECONDS)) {
-            try {
-                return action()
-            } finally {
-                unlock()
+    private suspend fun <T> Mutex.tryLock(mills: Int, action: () -> T): T {
+        try {
+            return withTimeout(mills.toLong()) {
+                withLock(action = action)
             }
-        } else {
+        } catch (e: TimeoutCancellationException) {
             throw ServiceException("Resource busy")
         }
-    }
 
+    }
 
 }
